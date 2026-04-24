@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Lateral Transshipment | Control Panel</title>
+    <title>Dynamic Lateral Transshipment | Platform</title>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -16,22 +16,13 @@
             --electric-blue: #0078ff;
             --text-main: #f0f0f0;
             --danger: #ff3366;
+            --warning: #ffaa00;
         }
 
-        /* Custom Webkit Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: var(--bg-deep);
-        }
-        ::-webkit-scrollbar-thumb {
-            background: var(--lavender-dark);
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--lavender);
-        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-deep); }
+        ::-webkit-scrollbar-thumb { background: var(--lavender-dark); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--lavender); }
 
         body {
             margin: 0;
@@ -42,7 +33,6 @@
             overflow-x: hidden;
         }
 
-        /* Navigation Bar */
         nav {
             background: linear-gradient(90deg, var(--panel-bg) 0%, var(--lavender-dark) 100%);
             padding: 15px 30px;
@@ -58,7 +48,6 @@
             font-size: 1.5rem;
             letter-spacing: 2px;
             text-transform: uppercase;
-            color: var(--text-main);
         }
 
         nav span {
@@ -67,33 +56,32 @@
             font-size: 0.9rem;
         }
 
-        /* Main Layout */
         .container {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
-            padding: 40px;
-            max-width: 1400px;
+            grid-template-columns: 1.2fr 1fr;
+            gap: 20px;
+            padding: 20px 40px;
+            max-width: 1600px;
             margin: 0 auto;
+            height: calc(100vh - 100px);
         }
 
         .panel {
             background-color: var(--panel-bg);
             border: 1px solid var(--lavender-dark);
             border-radius: 8px;
-            padding: 30px;
+            padding: 25px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             position: relative;
-            overflow: hidden;
+            display: flex;
+            flex-direction: column;
         }
 
         .panel::before {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 3px;
+            top: 0; left: 0;
+            width: 100%; height: 3px;
             background: var(--electric-blue);
         }
 
@@ -101,47 +89,84 @@
             font-size: 1.4rem;
             color: var(--lavender);
             margin-top: 0;
-            margin-bottom: 25px;
+            margin-bottom: 20px;
             text-transform: uppercase;
             letter-spacing: 1.5px;
             border-bottom: 1px solid rgba(162, 141, 236, 0.2);
             padding-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
         }
+
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Table Styles */
+        .table-wrapper {
+            flex-grow: 1;
+            overflow-y: auto;
+            border: 1px solid var(--lavender-dark);
+            border-radius: 4px;
+            background: rgba(0,0,0,0.3);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            text-align: left;
+        }
+
+        th {
+            position: sticky;
+            top: 0;
+            background-color: var(--lavender-dark);
+            color: var(--text-main);
+            padding: 12px;
+            border-bottom: 2px solid var(--teal);
+            z-index: 10;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(162, 141, 236, 0.2);
+            transition: background 0.2s;
+        }
+
+        tr:hover {
+            background-color: rgba(0, 120, 255, 0.15);
+            cursor: pointer;
+        }
+
+        .critical-stagnant { color: var(--danger); font-weight: bold; }
+        .critical-stockout { color: var(--warning); font-weight: bold; }
 
         /* Form Inputs */
         .input-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 20px;
+            gap: 15px;
         }
 
-        .input-group {
-            display: flex;
-            flex-direction: column;
-        }
-
+        .input-group { display: flex; flex-direction: column; }
         .input-group label {
-            font-size: 1rem;
+            font-size: 0.9rem;
             color: var(--teal);
-            margin-bottom: 8px;
+            margin-bottom: 5px;
             font-weight: 600;
         }
-
         .input-group input {
             background-color: rgba(0,0,0,0.4);
             border: 1px solid var(--lavender-dark);
             color: var(--text-main);
             font-family: 'JetBrains Mono', monospace;
-            padding: 10px 12px;
+            padding: 8px 10px;
             border-radius: 4px;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-        }
-
-        .input-group input:focus {
-            outline: none;
-            border-color: var(--teal);
-            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+            font-size: 0.95rem;
         }
 
         button {
@@ -149,146 +174,141 @@
             background: linear-gradient(45deg, var(--electric-blue), var(--lavender-dark));
             color: white;
             border: none;
-            padding: 15px;
+            padding: 12px;
             font-family: 'Rajdhani', sans-serif;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
             font-weight: 700;
             letter-spacing: 2px;
             border-radius: 4px;
             cursor: pointer;
-            margin-top: 15px;
-            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
             text-transform: uppercase;
         }
-
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 120, 255, 0.4);
-            background: linear-gradient(45deg, var(--teal), var(--electric-blue));
-        }
+        button:hover { background: linear-gradient(45deg, var(--teal), var(--electric-blue)); }
 
         /* Output Console */
         .console {
             background-color: rgba(0,0,0,0.6);
             border: 1px solid var(--lavender-dark);
             border-radius: 4px;
-            padding: 20px;
+            padding: 15px;
             font-family: 'JetBrains Mono', monospace;
-            min-height: 300px;
+            flex-grow: 1;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 10px;
+            overflow-y: auto;
         }
 
         .status-badge {
             display: inline-block;
-            padding: 8px 15px;
+            padding: 6px 12px;
             border-radius: 4px;
             font-weight: bold;
-            font-size: 1.1rem;
+            font-size: 1rem;
             text-transform: uppercase;
             letter-spacing: 1px;
             background-color: var(--lavender-dark);
-            border: 1px solid var(--lavender);
         }
 
-        .status-approved {
-            color: var(--bg-deep);
-            background-color: var(--neon-green);
-            border-color: var(--neon-green);
-            box-shadow: 0 0 15px rgba(0, 250, 154, 0.3);
-        }
-
-        .status-rejected {
-            color: white;
-            background-color: var(--danger);
-            border-color: var(--danger);
-            box-shadow: 0 0 15px rgba(255, 51, 102, 0.3);
-        }
+        .status-approved { color: var(--bg-deep); background-color: var(--neon-green); box-shadow: 0 0 10px rgba(0, 250, 154, 0.3); }
+        .status-rejected { color: white; background-color: var(--danger); box-shadow: 0 0 10px rgba(255, 51, 102, 0.3); }
 
         .metric-row {
             display: flex;
             justify-content: space-between;
             border-bottom: 1px dashed rgba(162, 141, 236, 0.3);
-            padding-bottom: 8px;
+            padding-bottom: 5px;
+            font-size: 0.9rem;
         }
-
-        .metric-label {
-            color: var(--lavender);
-        }
-
-        .metric-value {
-            color: var(--teal);
-            font-weight: bold;
-        }
-
-        .savings-highlight {
-            color: var(--neon-green);
-            font-size: 1.2rem;
-        }
+        .metric-label { color: var(--lavender); }
+        .metric-value { color: var(--teal); font-weight: bold; }
+        .savings-highlight { color: var(--neon-green); font-size: 1.1rem; }
     </style>
 </head>
 <body>
 
     <nav>
         <h1>D.L.T. Rebalancing Engine</h1>
-        <span>STATUS: SYS_ONLINE</span>
+        <span>STATUS: ACTIVE_MONITORING</span>
     </nav>
 
     <div class="container">
         <div class="panel">
-            <h2 class="panel-title">Asset Parameters</h2>
-            <div class="input-grid">
-                <div class="input-group">
-                    <label>SKU ID</label>
-                    <input type="text" id="sku" value="ITEM-9901">
-                </div>
-                <div class="input-group">
-                    <label>Unit Cost ($)</label>
-                    <input type="number" id="unitCost" value="150.00" step="0.01">
-                </div>
-                <div class="input-group">
-                    <label>Distance (Miles)</label>
-                    <input type="number" id="distance" value="120">
-                </div>
-                <div class="input-group">
-                    <label>Origin On-Hand</label>
-                    <input type="number" id="originStock" value="200">
-                </div>
-                <div class="input-group">
-                    <label>Dest On-Hand</label>
-                    <input type="number" id="destStock" value="2">
-                </div>
-                <div class="input-group">
-                    <label>Dest Daily Demand</label>
-                    <input type="number" id="demand" value="15">
-                </div>
-                <div class="input-group">
-                    <label>Days Stagnant</label>
-                    <input type="number" id="daysStagnant" value="120">
-                </div>
-                <div class="input-group">
-                    <label>Lead Time (Days)</label>
-                    <input type="number" id="leadTime" value="7">
-                </div>
-                
-                <button id="evaluateBtn" onclick="runSimulation()">Initialize Evaluation</button>
+            <div class="panel-title">
+                Live Network Telemetry
+                <span style="font-size: 0.9rem; color: var(--teal); font-family: 'JetBrains Mono';">Nodes: 5 | Health: 82%</span>
+            </div>
+            <div class="table-wrapper">
+                <table id="telemetryTable">
+                    <thead>
+                        <tr>
+                            <th>SKU ID</th>
+                            <th>Origin Node</th>
+                            <th>Dest Node</th>
+                            <th>Dist (mi)</th>
+                            <th>Stagnant Days</th>
+                            <th>Dest Stock</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        </tbody>
+                </table>
             </div>
         </div>
 
-        <div class="panel">
-            <h2 class="panel-title">Decision Matrix Output</h2>
-            <div class="console" id="outputConsole">
-                <div style="color: var(--lavender-dark);">Waiting for parameter input...</div>
+        <div class="right-column">
+            <div class="panel" style="flex: 0 0 auto;">
+                <h2 class="panel-title">Asset Parameters</h2>
+                <div class="input-grid">
+                    <div class="input-group">
+                        <label>SKU ID</label>
+                        <input type="text" id="sku" readonly style="color: var(--lavender);">
+                    </div>
+                    <div class="input-group">
+                        <label>Unit Cost ($)</label>
+                        <input type="number" id="unitCost">
+                    </div>
+                    <div class="input-group">
+                        <label>Distance (Miles)</label>
+                        <input type="number" id="distance">
+                    </div>
+                    <div class="input-group">
+                        <label>Origin On-Hand</label>
+                        <input type="number" id="originStock">
+                    </div>
+                    <div class="input-group">
+                        <label>Dest On-Hand</label>
+                        <input type="number" id="destStock">
+                    </div>
+                    <div class="input-group">
+                        <label>Dest Daily Demand</label>
+                        <input type="number" id="demand">
+                    </div>
+                    <div class="input-group">
+                        <label>Days Stagnant</label>
+                        <input type="number" id="daysStagnant">
+                    </div>
+                    <div class="input-group">
+                        <label>Lead Time (Days)</label>
+                        <input type="number" id="leadTime">
+                    </div>
+                    
+                    <button id="evaluateBtn" onclick="runSimulation()">Execute Algorithm</button>
+                </div>
+            </div>
+
+            <div class="panel" style="flex-grow: 1;">
+                <h2 class="panel-title">Decision Matrix Output</h2>
+                <div class="console" id="outputConsole">
+                    <div style="color: var(--lavender-dark);">Select an asset from telemetry to initialize.</div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        // This JavaScript replicates your Java logic for the frontend demo.
-        // Once your Google Cloud Function is deployed, we will replace this block 
-        // with a fetch() request to your backend API.
-
         const ANNUAL_HOLDING_COST_PCT = 0.20;
         const PROFIT_MARGIN_PCT = 0.30;
         const BASE_FREIGHT_COST = 50.0;
@@ -296,9 +316,61 @@
         const HANDLING_FEE = 20.0;
         const ORIGIN_SAFETY_STOCK_BUFFER = 10;
 
+        // Sample data injected directly from the Python simulation CSV
+        const networkData = [
+            { sku: 'ITEM-9954', cost: 157.70, origin: 'Node-North', dest: 'Node-South', dist: 137, orgStock: 109, destStock: 2, demand: 11, stagnant: 148, lt: 11 },
+            { sku: 'ITEM-2265', cost: 56.99, origin: 'Node-West', dest: 'Node-Central', dist: 2633, orgStock: 236, destStock: 2, demand: 6, stagnant: 54, lt: 9 },
+            { sku: 'ITEM-7978', cost: 68.34, origin: 'Node-East', dest: 'Node-North', dist: 139, orgStock: 22, destStock: 0, demand: 12, stagnant: 11, lt: 9 },
+            { sku: 'ITEM-4331', cost: 52.88, origin: 'Node-North', dest: 'Node-South', dist: 2651, orgStock: 165, destStock: 3, demand: 5, stagnant: 37, lt: 8 },
+            { sku: 'ITEM-3833', cost: 257.75, origin: 'Node-South', dest: 'Node-West', dist: 231, orgStock: 95, destStock: 48, demand: 11, stagnant: 68, lt: 5 },
+            { sku: 'ITEM-8635', cost: 377.53, origin: 'Node-South', dest: 'Node-Central', dist: 2952, orgStock: 208, destStock: 0, demand: 7, stagnant: 30, lt: 9 },
+            { sku: 'ITEM-5532', cost: 463.88, origin: 'Node-Central', dest: 'Node-West', dist: 135, orgStock: 211, destStock: 5, demand: 17, stagnant: 106, lt: 13 }
+        ];
+
+        // Render the telemetry table
+        function initTable() {
+            const tbody = document.getElementById('tableBody');
+            networkData.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.onclick = () => loadAsset(index);
+                
+                // Algorithmic highlighting for critical triage
+                const stagClass = item.stagnant > 90 ? 'critical-stagnant' : '';
+                const stockClass = item.destStock <= 3 ? 'critical-stockout' : '';
+
+                tr.innerHTML = `
+                    <td style="color: var(--teal);">${item.sku}</td>
+                    <td>${item.origin}</td>
+                    <td>${item.dest}</td>
+                    <td>${item.dist}</td>
+                    <td class="${stagClass}">${item.stagnant}</td>
+                    <td class="${stockClass}">${item.destStock}</td>
+                    <td><span style="color: var(--electric-blue); font-size: 0.8rem; border: 1px solid var(--electric-blue); padding: 2px 5px; border-radius: 3px;">LOAD</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Load selected asset into the form
+        function loadAsset(index) {
+            const item = networkData[index];
+            document.getElementById('sku').value = item.sku;
+            document.getElementById('unitCost').value = item.cost;
+            document.getElementById('distance').value = item.dist;
+            document.getElementById('originStock').value = item.orgStock;
+            document.getElementById('destStock').value = item.destStock;
+            document.getElementById('demand').value = item.demand;
+            document.getElementById('daysStagnant').value = item.stagnant;
+            document.getElementById('leadTime').value = item.lt;
+
+            const consoleDiv = document.getElementById('outputConsole');
+            consoleDiv.innerHTML = `<div style="color: var(--teal);">Asset ${item.sku} loaded. Awaiting execution command...</div>`;
+        }
+
         function runSimulation() {
-            // Gather inputs
             const sku = document.getElementById('sku').value;
+            if(!sku) return;
+
             const unitCost = parseFloat(document.getElementById('unitCost').value);
             const distance = parseFloat(document.getElementById('distance').value);
             const originStock = parseInt(document.getElementById('originStock').value);
@@ -308,18 +380,15 @@
             const leadTime = parseInt(document.getElementById('leadTime').value);
 
             const consoleDiv = document.getElementById('outputConsole');
-            consoleDiv.innerHTML = '<div style="color: var(--electric-blue);">Processing algorithms...</div>';
+            consoleDiv.innerHTML = '<div style="color: var(--electric-blue);">Executing mathematical tipping point analysis...</div>';
 
             setTimeout(() => {
-                // 1. Calculate Math
                 const accumulatedHoldingCost = (unitCost * ANNUAL_HOLDING_COST_PCT) * (daysStagnant / 365.0);
                 const costOfLostSale = unitCost * PROFIT_MARGIN_PCT;
                 const totalCostOfInaction = accumulatedHoldingCost + costOfLostSale;
                 const totalFreightCost = BASE_FREIGHT_COST + (distance * RATE_PER_MILE) + HANDLING_FEE;
 
                 const isFinanciallyViable = totalCostOfInaction > totalFreightCost;
-
-                // 2. Constraints
                 const reorderPoint = (demand * leadTime) * 1.2;
                 const isStockoutImminent = destStock <= reorderPoint;
                 
@@ -327,56 +396,37 @@
                 const destDeficit = Math.ceil(reorderPoint - destStock);
                 const transferQuantity = Math.min(originSurplus, destDeficit);
 
-                // 3. Render Result
                 let html = '';
                 
                 if (isFinanciallyViable && isStockoutImminent && transferQuantity > 0) {
                     const netSavings = (totalCostOfInaction - totalFreightCost).toFixed(2);
                     html = `
                         <div><span class="status-badge status-approved">Transfer Authorized</span></div>
-                        <div class="metric-row">
-                            <span class="metric-label">Target Asset:</span>
-                            <span class="metric-value">${sku}</span>
-                        </div>
-                        <div class="metric-row">
-                            <span class="metric-label">Approved Volume:</span>
-                            <span class="metric-value">${transferQuantity} Units</span>
-                        </div>
-                        <div class="metric-row">
-                            <span class="metric-label">Inaction Penalty:</span>
-                            <span class="metric-value">$${totalCostOfInaction.toFixed(2)}</span>
-                        </div>
-                        <div class="metric-row">
-                            <span class="metric-label">Freight Expense:</span>
-                            <span class="metric-value">$${totalFreightCost.toFixed(2)}</span>
-                        </div>
-                        <div class="metric-row">
-                            <span class="metric-label">Projected Network Savings:</span>
-                            <span class="metric-value savings-highlight">+$${netSavings}</span>
-                        </div>
+                        <div class="metric-row"><span class="metric-label">Target Asset:</span><span class="metric-value">${sku}</span></div>
+                        <div class="metric-row"><span class="metric-label">Approved Volume:</span><span class="metric-value">${transferQuantity} Units</span></div>
+                        <div class="metric-row"><span class="metric-label">Inaction Penalty:</span><span class="metric-value">$${totalCostOfInaction.toFixed(2)}</span></div>
+                        <div class="metric-row"><span class="metric-label">Freight Expense:</span><span class="metric-value">$${totalFreightCost.toFixed(2)}</span></div>
+                        <div class="metric-row"><span class="metric-label">Network Savings:</span><span class="metric-value savings-highlight">+$${netSavings}</span></div>
                     `;
                 } else {
-                    let reason = "";
-                    if (!isFinanciallyViable) reason = "Freight expense exceeds accumulated holding & stockout penalties.";
-                    else if (!isStockoutImminent) reason = "Destination inventory level remains secure above Reorder Point.";
-                    else reason = "Insufficient surplus available at Origin node.";
-
+                    let reason = !isFinanciallyViable ? "Freight expense exceeds accumulated holding & stockout penalties." : 
+                                 (!isStockoutImminent ? "Destination inventory level remains secure above Reorder Point." : 
+                                 "Insufficient surplus available at Origin node.");
                     html = `
                         <div><span class="status-badge status-rejected">Asset Hold Enforced</span></div>
-                        <div class="metric-row">
-                            <span class="metric-label">Target Asset:</span>
-                            <span class="metric-value">${sku}</span>
-                        </div>
+                        <div class="metric-row"><span class="metric-label">Target Asset:</span><span class="metric-value">${sku}</span></div>
                         <div class="metric-row" style="flex-direction: column; border-bottom: none; gap: 5px;">
                             <span class="metric-label">System Diagnostic:</span>
                             <span style="color: var(--text-main); font-size: 0.9rem;">${reason}</span>
                         </div>
                     `;
                 }
-
                 consoleDiv.innerHTML = html;
-            }, 400); // Slight delay for tech-aesthetic effect
+            }, 300);
         }
+
+        // Initialize table on load
+        window.onload = initTable;
     </script>
 </body>
 </html>

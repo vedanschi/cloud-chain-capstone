@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Lateral Transshipment | Control Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #0b0714;
+            --panel-bg: #18112b;
+            --lavender: #a28dec;
+            --lavender-dark: #3a2a6b;
+            --teal: #00f0ff;
+            --neon-green: #00fa9a;
+            --electric-blue: #0078ff;
+            --text-main: #f0f0f0;
+            --danger: #ff3366;
+        }
+
+        /* Custom Webkit Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-deep);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--lavender-dark);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--lavender);
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            font-family: 'Rajdhani', sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* Navigation Bar */
+        nav {
+            background: linear-gradient(90deg, var(--panel-bg) 0%, var(--lavender-dark) 100%);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--teal);
+            box-shadow: 0 4px 15px rgba(0, 240, 255, 0.1);
+        }
+
+        nav h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--text-main);
+        }
+
+        nav span {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--teal);
+            font-size: 0.9rem;
+        }
+
+        /* Main Layout */
+        .container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            padding: 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .panel {
+            background-color: var(--panel-bg);
+            border: 1px solid var(--lavender-dark);
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--electric-blue);
+        }
+
+        .panel-title {
+            font-size: 1.4rem;
+            color: var(--lavender);
+            margin-top: 0;
+            margin-bottom: 25px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            border-bottom: 1px solid rgba(162, 141, 236, 0.2);
+            padding-bottom: 10px;
+        }
+
+        /* Form Inputs */
+        .input-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .input-group label {
+            font-size: 1rem;
+            color: var(--teal);
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .input-group input {
+            background-color: rgba(0,0,0,0.4);
+            border: 1px solid var(--lavender-dark);
+            color: var(--text-main);
+            font-family: 'JetBrains Mono', monospace;
+            padding: 10px 12px;
+            border-radius: 4px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--teal);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+        }
+
+        button {
+            grid-column: 1 / -1;
+            background: linear-gradient(45deg, var(--electric-blue), var(--lavender-dark));
+            color: white;
+            border: none;
+            padding: 15px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-transform: uppercase;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 120, 255, 0.4);
+            background: linear-gradient(45deg, var(--teal), var(--electric-blue));
+        }
+
+        /* Output Console */
+        .console {
+            background-color: rgba(0,0,0,0.6);
+            border: 1px solid var(--lavender-dark);
+            border-radius: 4px;
+            padding: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            min-height: 300px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 8px 15px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background-color: var(--lavender-dark);
+            border: 1px solid var(--lavender);
+        }
+
+        .status-approved {
+            color: var(--bg-deep);
+            background-color: var(--neon-green);
+            border-color: var(--neon-green);
+            box-shadow: 0 0 15px rgba(0, 250, 154, 0.3);
+        }
+
+        .status-rejected {
+            color: white;
+            background-color: var(--danger);
+            border-color: var(--danger);
+            box-shadow: 0 0 15px rgba(255, 51, 102, 0.3);
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px dashed rgba(162, 141, 236, 0.3);
+            padding-bottom: 8px;
+        }
+
+        .metric-label {
+            color: var(--lavender);
+        }
+
+        .metric-value {
+            color: var(--teal);
+            font-weight: bold;
+        }
+
+        .savings-highlight {
+            color: var(--neon-green);
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <h1>D.L.T. Rebalancing Engine</h1>
+        <span>STATUS: SYS_ONLINE</span>
+    </nav>
+
+    <div class="container">
+        <div class="panel">
+            <h2 class="panel-title">Asset Parameters</h2>
+            <div class="input-grid">
+                <div class="input-group">
+                    <label>SKU ID</label>
+                    <input type="text" id="sku" value="ITEM-9901">
+                </div>
+                <div class="input-group">
+                    <label>Unit Cost ($)</label>
+                    <input type="number" id="unitCost" value="150.00" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label>Distance (Miles)</label>
+                    <input type="number" id="distance" value="120">
+                </div>
+                <div class="input-group">
+                    <label>Origin On-Hand</label>
+                    <input type="number" id="originStock" value="200">
+                </div>
+                <div class="input-group">
+                    <label>Dest On-Hand</label>
+                    <input type="number" id="destStock" value="2">
+                </div>
+                <div class="input-group">
+                    <label>Dest Daily Demand</label>
+                    <input type="number" id="demand" value="15">
+                </div>
+                <div class="input-group">
+                    <label>Days Stagnant</label>
+                    <input type="number" id="daysStagnant" value="120">
+                </div>
+                <div class="input-group">
+                    <label>Lead Time (Days)</label>
+                    <input type="number" id="leadTime" value="7">
+                </div>
+                
+                <button id="evaluateBtn" onclick="runSimulation()">Initialize Evaluation</button>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h2 class="panel-title">Decision Matrix Output</h2>
+            <div class="console" id="outputConsole">
+                <div style="color: var(--lavender-dark);">Waiting for parameter input...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // This JavaScript replicates your Java logic for the frontend demo.
+        // Once your Google Cloud Function is deployed, we will replace this block 
+        // with a fetch() request to your backend API.
+
+        const ANNUAL_HOLDING_COST_PCT = 0.20;
+        const PROFIT_MARGIN_PCT = 0.30;
+        const BASE_FREIGHT_COST = 50.0;
+        const RATE_PER_MILE = 0.15;
+        const HANDLING_FEE = 20.0;
+        const ORIGIN_SAFETY_STOCK_BUFFER = 10;
+
+        function runSimulation() {
+            // Gather inputs
+            const sku = document.getElementById('sku').value;
+            const unitCost = parseFloat(document.getElementById('unitCost').value);
+            const distance = parseFloat(document.getElementById('distance').value);
+            const originStock = parseInt(document.getElementById('originStock').value);
+            const destStock = parseInt(document.getElementById('destStock').value);
+            const demand = parseInt(document.getElementById('demand').value);
+            const daysStagnant = parseInt(document.getElementById('daysStagnant').value);
+            const leadTime = parseInt(document.getElementById('leadTime').value);
+
+            const consoleDiv = document.getElementById('outputConsole');
+            consoleDiv.innerHTML = '<div style="color: var(--electric-blue);">Processing algorithms...</div>';
+
+            setTimeout(() => {
+                // 1. Calculate Math
+                const accumulatedHoldingCost = (unitCost * ANNUAL_HOLDING_COST_PCT) * (daysStagnant / 365.0);
+                const costOfLostSale = unitCost * PROFIT_MARGIN_PCT;
+                const totalCostOfInaction = accumulatedHoldingCost + costOfLostSale;
+                const totalFreightCost = BASE_FREIGHT_COST + (distance * RATE_PER_MILE) + HANDLING_FEE;
+
+                const isFinanciallyViable = totalCostOfInaction > totalFreightCost;
+
+                // 2. Constraints
+                const reorderPoint = (demand * leadTime) * 1.2;
+                const isStockoutImminent = destStock <= reorderPoint;
+                
+                const originSurplus = originStock - ORIGIN_SAFETY_STOCK_BUFFER;
+                const destDeficit = Math.ceil(reorderPoint - destStock);
+                const transferQuantity = Math.min(originSurplus, destDeficit);
+
+                // 3. Render Result
+                let html = '';
+                
+                if (isFinanciallyViable && isStockoutImminent && transferQuantity > 0) {
+                    const netSavings = (totalCostOfInaction - totalFreightCost).toFixed(2);
+                    html = `
+                        <div><span class="status-badge status-approved">Transfer Authorized</span></div>
+                        <div class="metric-row">
+                            <span class="metric-label">Target Asset:</span>
+                            <span class="metric-value">${sku}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Approved Volume:</span>
+                            <span class="metric-value">${transferQuantity} Units</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Inaction Penalty:</span>
+                            <span class="metric-value">$${totalCostOfInaction.toFixed(2)}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Freight Expense:</span>
+                            <span class="metric-value">$${totalFreightCost.toFixed(2)}</span>
+                        </div>
+                        <div class="metric-row">
+                            <span class="metric-label">Projected Network Savings:</span>
+                            <span class="metric-value savings-highlight">+$${netSavings}</span>
+                        </div>
+                    `;
+                } else {
+                    let reason = "";
+                    if (!isFinanciallyViable) reason = "Freight expense exceeds accumulated holding & stockout penalties.";
+                    else if (!isStockoutImminent) reason = "Destination inventory level remains secure above Reorder Point.";
+                    else reason = "Insufficient surplus available at Origin node.";
+
+                    html = `
+                        <div><span class="status-badge status-rejected">Asset Hold Enforced</span></div>
+                        <div class="metric-row">
+                            <span class="metric-label">Target Asset:</span>
+                            <span class="metric-value">${sku}</span>
+                        </div>
+                        <div class="metric-row" style="flex-direction: column; border-bottom: none; gap: 5px;">
+                            <span class="metric-label">System Diagnostic:</span>
+                            <span style="color: var(--text-main); font-size: 0.9rem;">${reason}</span>
+                        </div>
+                    `;
+                }
+
+                consoleDiv.innerHTML = html;
+            }, 400); // Slight delay for tech-aesthetic effect
+        }
+    </script>
+</body>
+</html>

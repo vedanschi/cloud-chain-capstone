@@ -453,53 +453,53 @@
             document.getElementById('optimizeBtn').disabled = false;
         }
 
-        function runNetworkOptimization() {
-            if (!targetAsset) return;
+       async function runNetworkOptimization() {
+    if (!targetAsset) return;
 
-            const consoleDiv = document.getElementById('outputConsole');
-            consoleDiv.innerHTML = `<div style="color: var(--electric-blue);">> Initiating 1-to-N Network Search for ${targetAsset.sku}...</div>`;
+    const consoleDiv = document.getElementById('outputConsole');
+    consoleDiv.innerHTML = `<div style="color: var(--electric-blue);">> Contacting Cloud API for ${targetAsset.sku}...</div>`;
+    document.getElementById('optimizeBtn').disabled = true;
+
+    // Build the query parameters
+    const params = new URLSearchParams({
+        sku: targetAsset.sku,
+        origin: targetAsset.node,
+        cost: targetAsset.cost,
+        stock: targetAsset.stock,
+        stagnant: targetAsset.stagnant
+    });
+
+    try {
+        // Ping your Render API
+        const response = await fetch(`https://https://cloud-chain-capstone.onrender.com/api/optimize?${params}`);
+        const data = await response.json();
+
+        let html = `<div>> Network scan complete. Analyzing matrix...</div>`;
+
+        if (data.success) {
+            const winner = data.winner;
+            html += `
+                <div class="route-winner">
+                    <div style="color: var(--neon-green); font-weight: bold; font-size: 1.1rem; margin-bottom: 5px;">[DECISION] OPTIMAL ROUTE AUTHORIZED</div>
+                    <div>Execute Transfer: <span style="color: white;">${winner.transferQuantity} units</span> to <span style="color: white;">${winner.destinationNode}</span></div>
+                    <div>Total Network Savings: <span style="color: white; font-weight: bold;">+$${winner.netSavings.toFixed(2)}</span></div>
+                </div>
+            `;
             
-            document.getElementById('optimizeBtn').disabled = true;
+            // Deduct inventory locally on the UI to show the action completed
+            targetAsset.stock -= winner.transferQuantity;
+            renderTable();
+        } else {
+            html += `<div style="color: var(--danger); margin-top: 15px;">> [RESULT] Optimization Failed. No profitable routes discovered across the network. Hold asset.</div>`;
+        }
 
-            setTimeout(() => {
-                let viableRoutes = [];
-                let html = `<div>> Calculating Origin Inaction Penalty...</div>`;
-                
-                const accumulatedHoldingCost = (targetAsset.cost * ANNUAL_HOLDING_COST_PCT) * (targetAsset.stagnant / 365.0);
-                const costOfLostSale = targetAsset.cost * PROFIT_MARGIN_PCT;
-                const totalCostOfInaction = accumulatedHoldingCost + costOfLostSale;
-                const originSurplus = targetAsset.stock - ORIGIN_SAFETY_STOCK_BUFFER;
-
-                html += `<div style="margin-bottom: 15px; color: var(--lavender);">> Total Cost of Inaction: $${totalCostOfInaction.toFixed(2)}</div>`;
-                html += `<div>> Scanning network for ${targetAsset.sku} deficits...</div>`;
-
-                // The Search Loop
-                inventoryState.forEach(destNode => {
-                    if (destNode.sku === targetAsset.sku && destNode.node !== targetAsset.node) {
-                        const reorderPoint = (destNode.demand * destNode.leadTime) * 1.2;
-                        
-                        if (destNode.stock <= reorderPoint && destNode.demand > 0) {
-                            const distance = distanceMatrix[targetAsset.node][destNode.node];
-                            const totalFreightCost = BASE_FREIGHT_COST + (distance * RATE_PER_MILE) + HANDLING_FEE;
-                            
-                            html += `<div class="route-evaluation">
-                                Evaluating ${destNode.node} (${distance} mi): 
-                                Freight = $${totalFreightCost.toFixed(2)}. 
-                            `;
-
-                            if (totalCostOfInaction > totalFreightCost) {
-                                const destDeficit = Math.ceil(reorderPoint - destNode.stock);
-                                const transferQuantity = Math.min(originSurplus, destDeficit);
-                                const netSavings = totalCostOfInaction - totalFreightCost;
-                                
-                                html += `<span style="color: var(--neon-green);">Viable. Savings: $${netSavings.toFixed(2)}</span></div>`;
-                                viableRoutes.push({ node: destNode.node, dist: distance, qty: transferQuantity, savings: netSavings });
-                            } else {
-                                html += `<span style="color: var(--danger);">Rejected. Freight exceeds inaction cost.</span></div>`;
-                            }
-                        }
-                    }
-                });
+        consoleDiv.innerHTML += html;
+    } catch (error) {
+        consoleDiv.innerHTML += `<div style="color: var(--danger);">> API Connection Error. Ensure Render service is awake.</div>`;
+    }
+    
+    document.getElementById('optimizeBtn').disabled = false;
+}
 
                 if (viableRoutes.length === 0) {
                     html += `<div style="color: var(--danger); margin-top: 15px;">> [RESULT] Optimization Failed. No profitable routes discovered across the network. Hold asset.</div>`;

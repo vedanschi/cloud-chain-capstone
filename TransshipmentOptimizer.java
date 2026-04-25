@@ -2,7 +2,6 @@ import io.javalin.Javalin;
 import com.google.gson.Gson;
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.io.IOException;
 import java.util.*;
 
 public class TransshipmentOptimizer {
@@ -18,33 +17,34 @@ public class TransshipmentOptimizer {
     private static List<InventoryRecord> inventoryState = new ArrayList<>();
 
     public static void main(String[] args) {
-        // Load data on startup
-        loadDistanceMatrix("network_distances.csv");
-        loadInventoryState("inventory_state.csv");
+        try {
+            System.out.println("Starting up API...");
+            loadDistanceMatrix("network_distances.csv");
+            loadInventoryState("inventory_state.csv");
 
-        // Render assigns a dynamic port via environment variables
-        int port = System.getenv("PORT") != null ? Integer.parseInt(System.getenv("PORT")) : 7070;
+            int port = System.getenv("PORT") != null ? Integer.parseInt(System.getenv("PORT")) : 7070;
 
-        // Initialize Web Server
-        Javalin app = Javalin.create(config -> {
-            config.bundledPlugins.enableCors(cors -> cors.addRule(it -> it.anyHost()));
-        }).start(port);
+            Javalin app = Javalin.create(config -> {
+                config.bundledPlugins.enableCors(cors -> cors.addRule(it -> it.anyHost()));
+            }).start(port);
 
-        System.out.println("API running on port " + port);
+            System.out.println("API successfully running on port " + port);
 
-        // The API Endpoint
-        app.get("/api/optimize", ctx -> {
-            String targetSku = ctx.queryParam("sku");
-            String originNode = ctx.queryParam("origin");
-            double targetCost = Double.parseDouble(ctx.queryParam("cost"));
-            int targetStock = Integer.parseInt(ctx.queryParam("stock"));
-            int targetStagnant = Integer.parseInt(ctx.queryParam("stagnant"));
+            app.get("/api/optimize", ctx -> {
+                String targetSku = ctx.queryParam("sku");
+                String originNode = ctx.queryParam("origin");
+                double targetCost = Double.parseDouble(ctx.queryParam("cost"));
+                int targetStock = Integer.parseInt(ctx.queryParam("stock"));
+                int targetStagnant = Integer.parseInt(ctx.queryParam("stagnant"));
 
-            OptimizationResult response = runOptimizationEngine(targetSku, originNode, targetCost, targetStock, targetStagnant);
+                OptimizationResult response = runOptimizationEngine(targetSku, originNode, targetCost, targetStock, targetStagnant);
+                ctx.json(new Gson().toJson(response));
+            });
             
-            Gson gson = new Gson();
-            ctx.json(gson.toJson(response));
-        });
+        } catch (Exception e) {
+            System.err.println("FATAL STARTUP ERROR:");
+            e.printStackTrace();
+        }
     }
 
     public static OptimizationResult runOptimizationEngine(String sku, String originNode, double unitCost, int originStock, int daysStagnant) {
@@ -85,16 +85,20 @@ public class TransshipmentOptimizer {
         return result;
     }
 
-    // --- Data Loaders & Models ---
     public static void loadDistanceMatrix(String filePath) {
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             br.readLine(); 
             String line;
             while ((line = br.readLine()) != null) {
+                if (line.trim().isEmpty()) continue; // Safeguard against blank lines
                 String[] data = line.split(",");
-                distanceMatrix.computeIfAbsent(data[0], k -> new HashMap<>()).put(data[1], Double.parseDouble(data[2]));
+                if (data.length >= 3) {
+                    distanceMatrix.computeIfAbsent(data[0].trim(), k -> new HashMap<>())
+                                  .put(data[1].trim(), Double.parseDouble(data[2].trim()));
+                }
             }
-        } catch (IOException e) { System.out.println("No distance file found, continuing."); }
+            System.out.println("Distances loaded.");
+        } catch (Exception e) { System.out.println("Error loading distances: " + e.getMessage()); }
     }
 
     public static void loadInventoryState(String filePath) {
@@ -102,10 +106,17 @@ public class TransshipmentOptimizer {
             br.readLine();
             String line;
             while ((line = br.readLine()) != null) {
+                if (line.trim().isEmpty()) continue; // Safeguard against blank lines
                 String[] data = line.split(",");
-                inventoryState.add(new InventoryRecord(data[0], data[1], Double.parseDouble(data[2]), Integer.parseInt(data[3]), Integer.parseInt(data[4]), Integer.parseInt(data[5]), Integer.parseInt(data[6])));
+                if (data.length >= 7) {
+                    inventoryState.add(new InventoryRecord(data[0].trim(), data[1].trim(), 
+                        Double.parseDouble(data[2].trim()), Integer.parseInt(data[3].trim()), 
+                        Integer.parseInt(data[4].trim()), Integer.parseInt(data[5].trim()), 
+                        Integer.parseInt(data[6].trim())));
+                }
             }
-        } catch (IOException e) { System.out.println("No inventory file found, continuing."); }
+            System.out.println("Inventory loaded.");
+        } catch (Exception e) { System.out.println("Error loading inventory: " + e.getMessage()); }
     }
 
     static class InventoryRecord {

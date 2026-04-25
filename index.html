@@ -308,17 +308,45 @@
     </div>
 
     <script>
-        // Matching data extracted directly from your backend inventory_state.csv
-        let inventoryState = [
-            { sku: 'ITEM-1427', node: 'Node-South', cost: 375.71, stock: 343, demand: 0, stagnant: 137, leadTime: 7 },
-            { sku: 'ITEM-1427', node: 'Node-West', cost: 375.71, stock: 78, demand: 8, stagnant: 0, leadTime: 8 },
-            { sku: 'ITEM-5932', node: 'Node-East', cost: 443.32, stock: 102, demand: 0, stagnant: 175, leadTime: 14 },
-            { sku: 'ITEM-5932', node: 'Node-Central', cost: 443.32, stock: 56, demand: 1, stagnant: 0, leadTime: 6 },
-            { sku: 'ITEM-5932', node: 'Node-South', cost: 443.32, stock: 2, demand: 23, stagnant: 0, leadTime: 13 }
-        ];
-
+let inventoryState = [];
         let currentFilter = 'ALL';
         let targetAsset = null;
+
+        // Dynamically load your actual 250-item CSV file
+        async function loadRealData() {
+            try {
+                // Vercel serves the CSV file directly from your root directory
+                const response = await fetch('/inventory_state.csv');
+                const data = await response.text();
+
+                // Split into rows and skip the header row
+                const rows = data.split('\n').slice(1); 
+                
+                rows.forEach(row => {
+                    if (row.trim() === '') return;
+                    const cols = row.split(',');
+                    
+                    inventoryState.push({
+                        sku: cols[0].trim(),
+                        node: cols[1].trim(),
+                        cost: parseFloat(cols[2].trim()),
+                        stock: parseInt(cols[3].trim()),
+                        demand: parseInt(cols[4].trim()),
+                        stagnant: parseInt(cols[5].trim()),
+                        leadTime: parseInt(cols[6].trim())
+                    });
+                });
+
+                renderTable();
+                
+                const consoleDiv = document.getElementById('outputConsole');
+                consoleDiv.innerHTML = `<div style="color: var(--neon-green);">> System connected. Live inventory database loaded.</div>`;
+                
+            } catch (error) {
+                const consoleDiv = document.getElementById('outputConsole');
+                consoleDiv.innerHTML = `<div style="color: var(--danger);">> CRITICAL ERROR: Could not locate inventory_state.csv database.</div>`;
+            }
+        }
 
         function updateClock() {
             const now = new Date();
@@ -376,7 +404,7 @@
             });
             renderTable();
             const consoleDiv = document.getElementById('outputConsole');
-            consoleDiv.innerHTML = `<div style="color: var(--neon-green);">> Market advanced 1 day.</div>` + consoleDiv.innerHTML;
+            consoleDiv.innerHTML = `<div style="color: var(--neon-green);">> Market advanced 1 day. Inventory levels shifted.</div>` + consoleDiv.innerHTML;
         }
 
         function selectTarget(index) {
@@ -384,16 +412,16 @@
             const detailsDiv = document.getElementById('selectedAssetDetails');
             
             if (targetAsset.stagnant < 90) {
-                detailsDiv.innerHTML = `<div style="color: var(--warning);">Target ${targetAsset.sku} at ${targetAsset.node} is not critical dead stock. Optimization disabled.</div>`;
+                detailsDiv.innerHTML = `<div style="color: var(--warning);">Target ${targetAsset.sku} at ${targetAsset.node} is not classified as critical dead stock. Optimization disabled.</div>`;
                 document.getElementById('optimizeBtn').disabled = true;
                 return;
             }
 
             detailsDiv.innerHTML = `
-                <div style="color: var(--electric-blue); margin-bottom: 10px;">Target Acquired: Origin Node</div>
-                <div><span style="color: var(--lavender);">SKU:</span> ${targetAsset.sku}</div>
-                <div><span style="color: var(--lavender);">Location:</span> ${targetAsset.node}</div>
-                <div><span style="color: var(--lavender);">On-Hand:</span> ${targetAsset.stock} Units</div>
+                <div style="color: var(--electric-blue); margin-bottom: 10px; text-transform: uppercase;">Target Acquired: Origin Node</div>
+                <div><span style="color: var(--lavender);">SKU:</span> <span style="color: var(--text-main);">${targetAsset.sku}</span></div>
+                <div><span style="color: var(--lavender);">Location:</span> <span style="color: var(--text-main);">${targetAsset.node}</span></div>
+                <div><span style="color: var(--lavender);">On-Hand:</span> <span style="color: var(--text-main);">${targetAsset.stock} Units</span></div>
                 <div><span style="color: var(--lavender);">Stagnation:</span> <span class="critical-stagnant">${targetAsset.stagnant} Days</span></div>
             `;
             document.getElementById('optimizeBtn').disabled = false;
@@ -424,7 +452,7 @@
                     const winner = data.winner;
                     html += `
                         <div class="route-winner">
-                            <div style="color: var(--neon-green); font-weight: bold; margin-bottom: 5px;">[DECISION] OPTIMAL ROUTE AUTHORIZED</div>
+                            <div style="color: var(--neon-green); font-weight: bold; font-size: 1.1rem; margin-bottom: 5px;">[DECISION] OPTIMAL ROUTE AUTHORIZED</div>
                             <div>Execute Transfer: <span style="color: white;">${winner.transferQuantity} units</span> to <span style="color: white;">${winner.destinationNode}</span></div>
                             <div>Total Network Savings: <span style="color: white; font-weight: bold;">+$${winner.netSavings.toFixed(2)}</span></div>
                         </div>
@@ -432,8 +460,9 @@
                     targetAsset.stock -= winner.transferQuantity;
                     renderTable();
                 } else {
-                    html += `<div style="color: var(--danger); margin-top: 15px;">> [RESULT] Optimization Failed. No profitable routes discovered. Hold asset.</div>`;
+                    html += `<div style="color: var(--danger); margin-top: 15px;">> [RESULT] Optimization Failed. No profitable routes discovered across the network. Hold asset.</div>`;
                 }
+
                 consoleDiv.innerHTML += html;
             } catch (error) {
                 consoleDiv.innerHTML += `<div style="color: var(--danger);">> API Connection Error. Ensure Render service is awake.</div>`;
@@ -442,8 +471,9 @@
             document.getElementById('optimizeBtn').disabled = false;
         }
 
+        // Initialize by loading the real data
         window.onload = () => {
-            renderTable();
+            loadRealData();
             updateClock();
         };
     </script>

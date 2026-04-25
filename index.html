@@ -471,7 +471,7 @@
 
     try {
         // Ping your Render API
-        const response = await fetch(`https://https://cloud-chain-capstone.onrender.com/api/optimize?${params}`);
+        const response = await fetch('https://cloud-chain-capstone.onrender.com/api/optimize?${params}');
         const data = await response.json();
 
         let html = `<div>> Network scan complete. Analyzing matrix...</div>`;

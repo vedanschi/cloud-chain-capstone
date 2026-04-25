@@ -4,18 +4,18 @@ COPY . /app
 WORKDIR /app
 RUN mvn clean package
 
-# Step 2: Run the Java application
-FROM eclipse-temurin:17-jre-alpine
+# Step 2: Run the Java application (Standard JRE, No Alpine)
+FROM eclipse-temurin:17-jre
 WORKDIR /app
 
 # Copy the compiled Java application
 COPY --from=build /app/target/cloud-chain-api-1.0-SNAPSHOT.jar /app/app.jar
 
-# CRITICAL FIX: Copy the synthetic datasets so the engine has data to process!
+# Copy the synthetic datasets
 COPY --from=build /app/*.csv /app/
 
 # Expose the port Render uses
 EXPOSE 7070
 
-# Explicitly declare the classpath to prevent Manifest errors
-ENTRYPOINT ["java", "-cp", "app.jar", "TransshipmentOptimizer"]
+# Explicitly declare memory limits so Render doesn't kill the container
+ENTRYPOINT ["java", "-Xmx256m", "-jar", "app.jar"]

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dynamic Lateral Transshipment | Platform</title>
+    <title>Dynamic Lateral Transshipment | Optimizer Platform</title>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -31,6 +31,9 @@
             color: var(--text-main);
             font-family: 'Rajdhani', sans-serif;
             overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
         }
 
         nav {
@@ -41,6 +44,7 @@
             align-items: center;
             border-bottom: 2px solid var(--teal);
             box-shadow: 0 4px 15px rgba(0, 240, 255, 0.1);
+            flex-shrink: 0;
         }
 
         nav h1 {
@@ -58,12 +62,13 @@
 
         .container {
             display: grid;
-            grid-template-columns: 1.2fr 1fr;
+            grid-template-columns: 1.4fr 1fr;
             gap: 20px;
             padding: 20px 40px;
-            max-width: 1600px;
+            max-width: 1800px;
             margin: 0 auto;
-            height: calc(100vh - 100px);
+            flex-grow: 1;
+            overflow: hidden;
         }
 
         .panel {
@@ -75,6 +80,7 @@
             position: relative;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
 
         .panel::before {
@@ -89,22 +95,59 @@
             font-size: 1.4rem;
             color: var(--lavender);
             margin-top: 0;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             text-transform: uppercase;
             letter-spacing: 1.5px;
             border-bottom: 1px solid rgba(162, 141, 236, 0.2);
             padding-bottom: 10px;
             display: flex;
             justify-content: space-between;
+            align-items: center;
         }
 
-        .right-column {
+        /* Controls & Filters */
+        .controls {
             display: flex;
-            flex-direction: column;
-            gap: 20px;
+            gap: 10px;
+            margin-bottom: 15px;
         }
 
-        /* Table Styles */
+        .filter-btn {
+            background: transparent;
+            border: 1px solid var(--lavender-dark);
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .filter-btn:hover, .filter-btn.active {
+            background: var(--lavender-dark);
+            border-color: var(--lavender);
+        }
+
+        .sim-btn {
+            background: transparent;
+            border: 1px solid var(--teal);
+            color: var(--teal);
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            margin-left: auto;
+            transition: all 0.2s;
+        }
+
+        .sim-btn:hover {
+            background: rgba(0, 240, 255, 0.1);
+            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
+        }
+
+        /* Table */
         .table-wrapper {
             flex-grow: 1;
             overflow-y: auto;
@@ -144,49 +187,56 @@
 
         .critical-stagnant { color: var(--danger); font-weight: bold; }
         .critical-stockout { color: var(--warning); font-weight: bold; }
+        .surplus-good { color: var(--neon-green); }
 
-        /* Form Inputs */
-        .input-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
+        /* Right Column */
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow: hidden;
         }
 
-        .input-group { display: flex; flex-direction: column; }
-        .input-group label {
-            font-size: 0.9rem;
-            color: var(--teal);
-            margin-bottom: 5px;
-            font-weight: 600;
-        }
-        .input-group input {
-            background-color: rgba(0,0,0,0.4);
-            border: 1px solid var(--lavender-dark);
-            color: var(--text-main);
+        .asset-card {
+            background: rgba(0,0,0,0.4);
+            border: 1px dashed var(--lavender-dark);
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
             font-family: 'JetBrains Mono', monospace;
-            padding: 8px 10px;
-            border-radius: 4px;
-            font-size: 0.95rem;
         }
 
-        button {
-            grid-column: 1 / -1;
+        .action-btn {
+            width: 100%;
             background: linear-gradient(45deg, var(--electric-blue), var(--lavender-dark));
             color: white;
             border: none;
-            padding: 12px;
+            padding: 15px;
             font-family: 'Rajdhani', sans-serif;
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             font-weight: 700;
             letter-spacing: 2px;
             border-radius: 4px;
             cursor: pointer;
-            margin-top: 10px;
             text-transform: uppercase;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-        button:hover { background: linear-gradient(45deg, var(--teal), var(--electric-blue)); }
 
-        /* Output Console */
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 120, 255, 0.4);
+            background: linear-gradient(45deg, var(--teal), var(--electric-blue));
+        }
+
+        .action-btn:disabled {
+            background: var(--lavender-dark);
+            color: rgba(255,255,255,0.3);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Console */
         .console {
             background-color: rgba(0,0,0,0.6);
             border: 1px solid var(--lavender-dark);
@@ -198,58 +248,56 @@
             flex-direction: column;
             gap: 10px;
             overflow-y: auto;
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-weight: bold;
-            font-size: 1rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            background-color: var(--lavender-dark);
-        }
-
-        .status-approved { color: var(--bg-deep); background-color: var(--neon-green); box-shadow: 0 0 10px rgba(0, 250, 154, 0.3); }
-        .status-rejected { color: white; background-color: var(--danger); box-shadow: 0 0 10px rgba(255, 51, 102, 0.3); }
-
-        .metric-row {
-            display: flex;
-            justify-content: space-between;
-            border-bottom: 1px dashed rgba(162, 141, 236, 0.3);
-            padding-bottom: 5px;
             font-size: 0.9rem;
         }
-        .metric-label { color: var(--lavender); }
-        .metric-value { color: var(--teal); font-weight: bold; }
-        .savings-highlight { color: var(--neon-green); font-size: 1.1rem; }
+
+        .route-evaluation {
+            border-left: 2px solid var(--lavender-dark);
+            padding-left: 10px;
+            margin-bottom: 5px;
+            color: #aaa;
+        }
+        
+        .route-winner {
+            border-left: 2px solid var(--neon-green);
+            padding-left: 10px;
+            margin-top: 10px;
+            background: rgba(0, 250, 154, 0.05);
+            padding: 10px;
+            border-radius: 0 4px 4px 0;
+        }
     </style>
 </head>
 <body>
 
     <nav>
         <h1>D.L.T. Rebalancing Engine</h1>
-        <span>STATUS: ACTIVE_MONITORING</span>
+        <span id="sysClock">STATUS: ACTIVE_MONITORING | SYS_TIME: 00:00:00</span>
     </nav>
 
     <div class="container">
         <div class="panel">
             <div class="panel-title">
                 Live Network Telemetry
-                <span style="font-size: 0.9rem; color: var(--teal); font-family: 'JetBrains Mono';">Nodes: 5 | Health: 82%</span>
             </div>
+            
+            <div class="controls">
+                <button class="filter-btn active" onclick="applyFilter('ALL')">ALL ASSETS</button>
+                <button class="filter-btn" onclick="applyFilter('STAGNANT')">CRITICAL STAGNANT (DEAD STOCK)</button>
+                <button class="filter-btn" onclick="applyFilter('STOCKOUT')">STOCKOUT RISK</button>
+                <button class="sim-btn" onclick="simulateMarket()">[+] ADVANCE MARKET 1 DAY</button>
+            </div>
+
             <div class="table-wrapper">
                 <table id="telemetryTable">
                     <thead>
                         <tr>
                             <th>SKU ID</th>
-                            <th>Origin Node</th>
-                            <th>Dest Node</th>
-                            <th>Dist (mi)</th>
+                            <th>Node Location</th>
+                            <th>Stock</th>
+                            <th>Demand/Day</th>
                             <th>Stagnant Days</th>
-                            <th>Dest Stock</th>
-                            <th>Action</th>
+                            <th>State</th>
                         </tr>
                     </thead>
                     <tbody id="tableBody">
@@ -260,55 +308,26 @@
 
         <div class="right-column">
             <div class="panel" style="flex: 0 0 auto;">
-                <h2 class="panel-title">Asset Parameters</h2>
-                <div class="input-grid">
-                    <div class="input-group">
-                        <label>SKU ID</label>
-                        <input type="text" id="sku" readonly style="color: var(--lavender);">
-                    </div>
-                    <div class="input-group">
-                        <label>Unit Cost ($)</label>
-                        <input type="number" id="unitCost">
-                    </div>
-                    <div class="input-group">
-                        <label>Distance (Miles)</label>
-                        <input type="number" id="distance">
-                    </div>
-                    <div class="input-group">
-                        <label>Origin On-Hand</label>
-                        <input type="number" id="originStock">
-                    </div>
-                    <div class="input-group">
-                        <label>Dest On-Hand</label>
-                        <input type="number" id="destStock">
-                    </div>
-                    <div class="input-group">
-                        <label>Dest Daily Demand</label>
-                        <input type="number" id="demand">
-                    </div>
-                    <div class="input-group">
-                        <label>Days Stagnant</label>
-                        <input type="number" id="daysStagnant">
-                    </div>
-                    <div class="input-group">
-                        <label>Lead Time (Days)</label>
-                        <input type="number" id="leadTime">
-                    </div>
-                    
-                    <button id="evaluateBtn" onclick="runSimulation()">Execute Algorithm</button>
+                <h2 class="panel-title">Optimization Targeting</h2>
+                
+                <div class="asset-card" id="selectedAssetDetails">
+                    <div style="color: var(--lavender-dark);">Awaiting target selection from telemetry...</div>
                 </div>
+
+                <button class="action-btn" id="optimizeBtn" disabled onclick="runNetworkOptimization()">Run Network Optimization</button>
             </div>
 
             <div class="panel" style="flex-grow: 1;">
-                <h2 class="panel-title">Decision Matrix Output</h2>
+                <h2 class="panel-title">Engine Execution Log</h2>
                 <div class="console" id="outputConsole">
-                    <div style="color: var(--lavender-dark);">Select an asset from telemetry to initialize.</div>
+                    <div style="color: var(--lavender-dark);">> System idle.</div>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+        // Constants
         const ANNUAL_HOLDING_COST_PCT = 0.20;
         const PROFIT_MARGIN_PCT = 0.30;
         const BASE_FREIGHT_COST = 50.0;
@@ -316,117 +335,205 @@
         const HANDLING_FEE = 20.0;
         const ORIGIN_SAFETY_STOCK_BUFFER = 10;
 
-        // Sample data injected directly from the Python simulation CSV
-        const networkData = [
-            { sku: 'ITEM-9954', cost: 157.70, origin: 'Node-North', dest: 'Node-South', dist: 137, orgStock: 109, destStock: 2, demand: 11, stagnant: 148, lt: 11 },
-            { sku: 'ITEM-2265', cost: 56.99, origin: 'Node-West', dest: 'Node-Central', dist: 2633, orgStock: 236, destStock: 2, demand: 6, stagnant: 54, lt: 9 },
-            { sku: 'ITEM-7978', cost: 68.34, origin: 'Node-East', dest: 'Node-North', dist: 139, orgStock: 22, destStock: 0, demand: 12, stagnant: 11, lt: 9 },
-            { sku: 'ITEM-4331', cost: 52.88, origin: 'Node-North', dest: 'Node-South', dist: 2651, orgStock: 165, destStock: 3, demand: 5, stagnant: 37, lt: 8 },
-            { sku: 'ITEM-3833', cost: 257.75, origin: 'Node-South', dest: 'Node-West', dist: 231, orgStock: 95, destStock: 48, demand: 11, stagnant: 68, lt: 5 },
-            { sku: 'ITEM-8635', cost: 377.53, origin: 'Node-South', dest: 'Node-Central', dist: 2952, orgStock: 208, destStock: 0, demand: 7, stagnant: 30, lt: 9 },
-            { sku: 'ITEM-5532', cost: 463.88, origin: 'Node-Central', dest: 'Node-West', dist: 135, orgStock: 211, destStock: 5, demand: 17, stagnant: 106, lt: 13 }
+        // Decoupled Distance Matrix (Mock mapping)
+        const distanceMatrix = {
+            'Node-North': { 'Node-South': 1126, 'Node-East': 680, 'Node-West': 500, 'Node-Central': 271 },
+            'Node-South': { 'Node-North': 1126, 'Node-East': 165, 'Node-West': 231, 'Node-Central': 826 },
+            'Node-East': { 'Node-North': 680, 'Node-South': 165, 'Node-West': 1241, 'Node-Central': 157 },
+            'Node-West': { 'Node-North': 500, 'Node-South': 231, 'Node-East': 1241, 'Node-Central': 214 },
+            'Node-Central': { 'Node-North': 271, 'Node-South': 826, 'Node-East': 157, 'Node-West': 214 }
+        };
+
+        // Decoupled Inventory State
+        let inventoryState = [
+            { sku: 'ITEM-1001', node: 'Node-North', cost: 150.00, stock: 210, demand: 0, stagnant: 120, leadTime: 7 },
+            { sku: 'ITEM-1001', node: 'Node-South', cost: 150.00, stock: 2, demand: 15, stagnant: 0, leadTime: 7 },
+            { sku: 'ITEM-1001', node: 'Node-East', cost: 150.00, stock: 4, demand: 10, stagnant: 0, leadTime: 7 },
+            { sku: 'ITEM-9954', node: 'Node-West', cost: 350.00, stock: 150, demand: 0, stagnant: 95, leadTime: 14 },
+            { sku: 'ITEM-9954', node: 'Node-Central', cost: 350.00, stock: 5, demand: 12, stagnant: 0, leadTime: 14 },
+            { sku: 'ITEM-4331', node: 'Node-South', cost: 65.00, stock: 300, demand: 0, stagnant: 150, leadTime: 10 },
+            { sku: 'ITEM-4331', node: 'Node-North', cost: 65.00, stock: 1, demand: 20, stagnant: 0, leadTime: 10 }
         ];
 
-        // Render the telemetry table
-        function initTable() {
-            const tbody = document.getElementById('tableBody');
-            networkData.forEach((item, index) => {
-                const tr = document.createElement('tr');
-                tr.onclick = () => loadAsset(index);
-                
-                // Algorithmic highlighting for critical triage
-                const stagClass = item.stagnant > 90 ? 'critical-stagnant' : '';
-                const stockClass = item.destStock <= 3 ? 'critical-stockout' : '';
+        let currentFilter = 'ALL';
+        let targetAsset = null;
 
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('sysClock').innerText = `STATUS: ACTIVE_MONITORING | SYS_TIME: ${now.toLocaleTimeString('en-US', { hour12: false })}`;
+        }
+        setInterval(updateClock, 1000);
+
+        function applyFilter(filterType) {
+            currentFilter = filterType;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderTable();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            inventoryState.forEach((item, index) => {
+                let isStagnant = item.stagnant >= 90;
+                let reorderPoint = (item.demand * item.leadTime) * 1.2;
+                let isStockout = item.stock <= reorderPoint && item.demand > 0;
+
+                // Apply Filters
+                if (currentFilter === 'STAGNANT' && !isStagnant) return;
+                if (currentFilter === 'STOCKOUT' && !isStockout) return;
+
+                let stateLabel = '<span style="color: #888;">NORMAL</span>';
+                let rowClass = '';
+
+                if (isStagnant) {
+                    stateLabel = '<span class="critical-stagnant">DEAD STOCK</span>';
+                } else if (isStockout) {
+                    stateLabel = '<span class="critical-stockout">STOCKOUT RISK</span>';
+                }
+
+                const tr = document.createElement('tr');
+                tr.onclick = () => selectTarget(index);
+                
                 tr.innerHTML = `
-                    <td style="color: var(--teal);">${item.sku}</td>
-                    <td>${item.origin}</td>
-                    <td>${item.dest}</td>
-                    <td>${item.dist}</td>
-                    <td class="${stagClass}">${item.stagnant}</td>
-                    <td class="${stockClass}">${item.destStock}</td>
-                    <td><span style="color: var(--electric-blue); font-size: 0.8rem; border: 1px solid var(--electric-blue); padding: 2px 5px; border-radius: 3px;">LOAD</span></td>
+                    <td style="color: var(--teal); font-weight: bold;">${item.sku}</td>
+                    <td>${item.node}</td>
+                    <td>${item.stock}</td>
+                    <td>${item.demand}</td>
+                    <td class="${isStagnant ? 'critical-stagnant' : ''}">${item.stagnant}</td>
+                    <td>${stateLabel}</td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        // Load selected asset into the form
-        function loadAsset(index) {
-            const item = networkData[index];
-            document.getElementById('sku').value = item.sku;
-            document.getElementById('unitCost').value = item.cost;
-            document.getElementById('distance').value = item.dist;
-            document.getElementById('originStock').value = item.orgStock;
-            document.getElementById('destStock').value = item.destStock;
-            document.getElementById('demand').value = item.demand;
-            document.getElementById('daysStagnant').value = item.stagnant;
-            document.getElementById('leadTime').value = item.lt;
-
+        function simulateMarket() {
+            // Randomize daily fluctuations to create continuous test cases
+            inventoryState.forEach(item => {
+                if (item.demand > 0) {
+                    // Simulate daily sales
+                    let sales = Math.floor(item.demand * (0.8 + Math.random() * 0.4)); // +/- 20%
+                    item.stock = Math.max(0, item.stock - sales);
+                    // Demand fluctuates slightly
+                    item.demand = Math.max(1, item.demand + Math.floor((Math.random() - 0.5) * 4));
+                } else {
+                    // Dead stock gets older
+                    item.stagnant += 1;
+                    // Rare chance a dead stock item suddenly gets demand again
+                    if (Math.random() < 0.05) {
+                        item.demand = Math.floor(Math.random() * 5) + 1;
+                        item.stagnant = 0;
+                    }
+                }
+            });
+            renderTable();
+            
             const consoleDiv = document.getElementById('outputConsole');
-            consoleDiv.innerHTML = `<div style="color: var(--teal);">Asset ${item.sku} loaded. Awaiting execution command...</div>`;
+            consoleDiv.innerHTML = `<div style="color: var(--neon-green);">> Market advanced 1 day. Inventory levels shifted.</div>` + consoleDiv.innerHTML;
         }
 
-        function runSimulation() {
-            const sku = document.getElementById('sku').value;
-            if(!sku) return;
+        function selectTarget(index) {
+            targetAsset = inventoryState[index];
+            const detailsDiv = document.getElementById('selectedAssetDetails');
+            
+            if (targetAsset.stagnant < 90) {
+                detailsDiv.innerHTML = `<div style="color: var(--warning);">Target ${targetAsset.sku} at ${targetAsset.node} is not classified as critical dead stock. Optimization disabled.</div>`;
+                document.getElementById('optimizeBtn').disabled = true;
+                return;
+            }
 
-            const unitCost = parseFloat(document.getElementById('unitCost').value);
-            const distance = parseFloat(document.getElementById('distance').value);
-            const originStock = parseInt(document.getElementById('originStock').value);
-            const destStock = parseInt(document.getElementById('destStock').value);
-            const demand = parseInt(document.getElementById('demand').value);
-            const daysStagnant = parseInt(document.getElementById('daysStagnant').value);
-            const leadTime = parseInt(document.getElementById('leadTime').value);
+            detailsDiv.innerHTML = `
+                <div style="color: var(--electric-blue); margin-bottom: 10px; text-transform: uppercase;">Target Acquired: Origin Node</div>
+                <div><span style="color: var(--lavender);">SKU:</span> <span style="color: var(--text-main);">${targetAsset.sku}</span></div>
+                <div><span style="color: var(--lavender);">Location:</span> <span style="color: var(--text-main);">${targetAsset.node}</span></div>
+                <div><span style="color: var(--lavender);">On-Hand:</span> <span style="color: var(--text-main);">${targetAsset.stock} Units</span></div>
+                <div><span style="color: var(--lavender);">Stagnation:</span> <span class="critical-stagnant">${targetAsset.stagnant} Days</span></div>
+            `;
+            document.getElementById('optimizeBtn').disabled = false;
+        }
+
+        function runNetworkOptimization() {
+            if (!targetAsset) return;
 
             const consoleDiv = document.getElementById('outputConsole');
-            consoleDiv.innerHTML = '<div style="color: var(--electric-blue);">Executing mathematical tipping point analysis...</div>';
+            consoleDiv.innerHTML = `<div style="color: var(--electric-blue);">> Initiating 1-to-N Network Search for ${targetAsset.sku}...</div>`;
+            
+            document.getElementById('optimizeBtn').disabled = true;
 
             setTimeout(() => {
-                const accumulatedHoldingCost = (unitCost * ANNUAL_HOLDING_COST_PCT) * (daysStagnant / 365.0);
-                const costOfLostSale = unitCost * PROFIT_MARGIN_PCT;
+                let viableRoutes = [];
+                let html = `<div>> Calculating Origin Inaction Penalty...</div>`;
+                
+                const accumulatedHoldingCost = (targetAsset.cost * ANNUAL_HOLDING_COST_PCT) * (targetAsset.stagnant / 365.0);
+                const costOfLostSale = targetAsset.cost * PROFIT_MARGIN_PCT;
                 const totalCostOfInaction = accumulatedHoldingCost + costOfLostSale;
-                const totalFreightCost = BASE_FREIGHT_COST + (distance * RATE_PER_MILE) + HANDLING_FEE;
+                const originSurplus = targetAsset.stock - ORIGIN_SAFETY_STOCK_BUFFER;
 
-                const isFinanciallyViable = totalCostOfInaction > totalFreightCost;
-                const reorderPoint = (demand * leadTime) * 1.2;
-                const isStockoutImminent = destStock <= reorderPoint;
-                
-                const originSurplus = originStock - ORIGIN_SAFETY_STOCK_BUFFER;
-                const destDeficit = Math.ceil(reorderPoint - destStock);
-                const transferQuantity = Math.min(originSurplus, destDeficit);
+                html += `<div style="margin-bottom: 15px; color: var(--lavender);">> Total Cost of Inaction: $${totalCostOfInaction.toFixed(2)}</div>`;
+                html += `<div>> Scanning network for ${targetAsset.sku} deficits...</div>`;
 
-                let html = '';
-                
-                if (isFinanciallyViable && isStockoutImminent && transferQuantity > 0) {
-                    const netSavings = (totalCostOfInaction - totalFreightCost).toFixed(2);
-                    html = `
-                        <div><span class="status-badge status-approved">Transfer Authorized</span></div>
-                        <div class="metric-row"><span class="metric-label">Target Asset:</span><span class="metric-value">${sku}</span></div>
-                        <div class="metric-row"><span class="metric-label">Approved Volume:</span><span class="metric-value">${transferQuantity} Units</span></div>
-                        <div class="metric-row"><span class="metric-label">Inaction Penalty:</span><span class="metric-value">$${totalCostOfInaction.toFixed(2)}</span></div>
-                        <div class="metric-row"><span class="metric-label">Freight Expense:</span><span class="metric-value">$${totalFreightCost.toFixed(2)}</span></div>
-                        <div class="metric-row"><span class="metric-label">Network Savings:</span><span class="metric-value savings-highlight">+$${netSavings}</span></div>
-                    `;
+                // The Search Loop
+                inventoryState.forEach(destNode => {
+                    if (destNode.sku === targetAsset.sku && destNode.node !== targetAsset.node) {
+                        const reorderPoint = (destNode.demand * destNode.leadTime) * 1.2;
+                        
+                        if (destNode.stock <= reorderPoint && destNode.demand > 0) {
+                            const distance = distanceMatrix[targetAsset.node][destNode.node];
+                            const totalFreightCost = BASE_FREIGHT_COST + (distance * RATE_PER_MILE) + HANDLING_FEE;
+                            
+                            html += `<div class="route-evaluation">
+                                Evaluating ${destNode.node} (${distance} mi): 
+                                Freight = $${totalFreightCost.toFixed(2)}. 
+                            `;
+
+                            if (totalCostOfInaction > totalFreightCost) {
+                                const destDeficit = Math.ceil(reorderPoint - destNode.stock);
+                                const transferQuantity = Math.min(originSurplus, destDeficit);
+                                const netSavings = totalCostOfInaction - totalFreightCost;
+                                
+                                html += `<span style="color: var(--neon-green);">Viable. Savings: $${netSavings.toFixed(2)}</span></div>`;
+                                viableRoutes.push({ node: destNode.node, dist: distance, qty: transferQuantity, savings: netSavings });
+                            } else {
+                                html += `<span style="color: var(--danger);">Rejected. Freight exceeds inaction cost.</span></div>`;
+                            }
+                        }
+                    }
+                });
+
+                if (viableRoutes.length === 0) {
+                    html += `<div style="color: var(--danger); margin-top: 15px;">> [RESULT] Optimization Failed. No profitable routes discovered across the network. Hold asset.</div>`;
                 } else {
-                    let reason = !isFinanciallyViable ? "Freight expense exceeds accumulated holding & stockout penalties." : 
-                                 (!isStockoutImminent ? "Destination inventory level remains secure above Reorder Point." : 
-                                 "Insufficient surplus available at Origin node.");
-                    html = `
-                        <div><span class="status-badge status-rejected">Asset Hold Enforced</span></div>
-                        <div class="metric-row"><span class="metric-label">Target Asset:</span><span class="metric-value">${sku}</span></div>
-                        <div class="metric-row" style="flex-direction: column; border-bottom: none; gap: 5px;">
-                            <span class="metric-label">System Diagnostic:</span>
-                            <span style="color: var(--text-main); font-size: 0.9rem;">${reason}</span>
+                    // Rank the routes
+                    viableRoutes.sort((a, b) => b.savings - a.savings);
+                    const winner = viableRoutes[0];
+                    
+                    html += `
+                        <div class="route-winner">
+                            <div style="color: var(--neon-green); font-weight: bold; font-size: 1.1rem; margin-bottom: 5px;">[DECISION] OPTIMAL ROUTE AUTHORIZED</div>
+                            <div>Execute Transfer: <span style="color: white;">${winner.qty} units</span> to <span style="color: white;">${winner.node}</span></div>
+                            <div>Total Network Savings: <span style="color: white; font-weight: bold;">+$${winner.savings.toFixed(2)}</span></div>
                         </div>
                     `;
+
+                    // Immediately deduct from UI to show action was taken
+                    targetAsset.stock -= winner.qty;
+                    let receivingNode = inventoryState.find(n => n.node === winner.node && n.sku === targetAsset.sku);
+                    if (receivingNode) receivingNode.stock += winner.qty;
+                    renderTable();
                 }
-                consoleDiv.innerHTML = html;
-            }, 300);
+
+                consoleDiv.innerHTML += html;
+                document.getElementById('optimizeBtn').disabled = false;
+                
+            }, 600); // Aesthetic processing delay
         }
 
-        // Initialize table on load
-        window.onload = initTable;
+        // Initialize
+        window.onload = () => {
+            renderTable();
+            updateClock();
+        };
     </script>
 </body>
 </html>

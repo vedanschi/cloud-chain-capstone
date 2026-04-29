@@ -8,8 +8,6 @@ const UIController = {
     currentNodeFilter: 'ALL',
     selectedAsset: null,
     
-    // Hardcoded for demonstration until Java backend fully integrates it
-    centralWarehouseParams: { node: 'Central Warehouse', freight: 120.00, leadTime: 14 },
 
     init() {
         this.updateClock();

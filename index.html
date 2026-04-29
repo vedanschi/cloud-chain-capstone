@@ -47,35 +47,27 @@
             flex-shrink: 0;
         }
 
-        nav h1 {
-            margin: 0;
-            font-size: 1.5rem;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
+        nav h1 { margin: 0; font-size: 1.5rem; letter-spacing: 2px; text-transform: uppercase; }
+        nav span { font-family: 'JetBrains Mono', monospace; color: var(--teal); font-size: 0.9rem; }
 
-        nav span {
-            font-family: 'JetBrains Mono', monospace;
-            color: var(--teal);
-            font-size: 0.9rem;
-        }
-
-        .container {
+        .dashboard-grid {
             display: grid;
             grid-template-columns: 1.4fr 1fr;
+            grid-template-rows: 1fr 250px;
             gap: 20px;
             padding: 20px 40px;
-            max-width: 1800px;
-            margin: 0 auto;
             flex-grow: 1;
             overflow: hidden;
+            max-width: 1800px;
+            margin: 0 auto;
+            width: calc(100% - 80px);
         }
 
         .panel {
             background-color: var(--panel-bg);
             border: 1px solid var(--lavender-dark);
             border-radius: 8px;
-            padding: 25px;
+            padding: 20px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             position: relative;
             display: flex;
@@ -84,176 +76,66 @@
         }
 
         .panel::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0;
-            width: 100%; height: 3px;
-            background: var(--electric-blue);
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: var(--electric-blue);
         }
 
         .panel-title {
-            font-size: 1.4rem;
-            color: var(--lavender);
-            margin-top: 0;
-            margin-bottom: 15px;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            border-bottom: 1px solid rgba(162, 141, 236, 0.2);
-            padding-bottom: 10px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            font-size: 1.4rem; color: var(--lavender); margin-top: 0; margin-bottom: 15px; text-transform: uppercase;
+            letter-spacing: 1.5px; border-bottom: 1px solid rgba(162, 141, 236, 0.2); padding-bottom: 10px;
+            display: flex; justify-content: space-between; align-items: center;
         }
 
-        .controls {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
+        /* Forms & Controls */
+        .controls { display: flex; gap: 10px; margin-bottom: 15px; align-items: center; }
+        
+        .form-select {
+            background: rgba(0,0,0,0.5); border: 1px solid var(--lavender-dark); color: var(--teal);
+            padding: 8px 12px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;
+            outline: none; cursor: pointer; width: 100%; margin-top: 5px;
         }
+        .form-select:focus { border-color: var(--electric-blue); }
 
         .filter-btn {
-            background: transparent;
-            border: 1px solid var(--lavender-dark);
-            color: var(--text-main);
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8rem;
-            transition: all 0.2s;
+            background: transparent; border: 1px solid var(--lavender-dark); color: var(--text-main);
+            padding: 6px 12px; border-radius: 4px; cursor: pointer; font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem; transition: all 0.2s;
         }
+        .filter-btn:hover, .filter-btn.active { background: var(--lavender-dark); border-color: var(--lavender); }
 
-        .filter-btn:hover, .filter-btn.active {
-            background: var(--lavender-dark);
-            border-color: var(--lavender);
+        .action-btn {
+            width: 100%; background: linear-gradient(45deg, var(--electric-blue), var(--lavender-dark));
+            color: white; border: none; padding: 15px; font-family: 'Rajdhani', sans-serif; font-size: 1.2rem;
+            font-weight: 700; letter-spacing: 2px; border-radius: 4px; cursor: pointer; text-transform: uppercase;
+            transition: transform 0.2s, box-shadow 0.2s; margin-top: 15px;
         }
+        .action-btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0, 120, 255, 0.4); background: linear-gradient(45deg, var(--teal), var(--electric-blue)); }
+        .action-btn:disabled { background: var(--lavender-dark); color: rgba(255,255,255,0.3); cursor: not-allowed; transform: none; box-shadow: none; }
 
-        .sim-btn {
-            background: transparent;
-            border: 1px solid var(--teal);
-            color: var(--teal);
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.8rem;
-            margin-left: auto;
-            transition: all 0.2s;
-        }
+        /* Tables */
+        .table-wrapper { flex-grow: 1; overflow-y: auto; border: 1px solid var(--lavender-dark); border-radius: 4px; background: rgba(0,0,0,0.3); }
+        table { width: 100%; border-collapse: collapse; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; text-align: left; }
+        th { position: sticky; top: 0; background-color: var(--lavender-dark); color: var(--text-main); padding: 12px; border-bottom: 2px solid var(--teal); z-index: 10; }
+        td { padding: 12px; border-bottom: 1px solid rgba(162, 141, 236, 0.2); transition: background 0.2s; }
+        tr:hover { background-color: rgba(0, 120, 255, 0.15); cursor: pointer; }
 
-        .sim-btn:hover {
-            background: rgba(0, 240, 255, 0.1);
-            box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
-        }
-
-        .table-wrapper {
-            flex-grow: 1;
-            overflow-y: auto;
-            border: 1px solid var(--lavender-dark);
-            border-radius: 4px;
-            background: rgba(0,0,0,0.3);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
-            text-align: left;
-        }
-
-        th {
-            position: sticky;
-            top: 0;
-            background-color: var(--lavender-dark);
-            color: var(--text-main);
-            padding: 12px;
-            border-bottom: 2px solid var(--teal);
-            z-index: 10;
-        }
-
-        td {
-            padding: 12px;
-            border-bottom: 1px solid rgba(162, 141, 236, 0.2);
-            transition: background 0.2s;
-        }
-
-        tr:hover {
-            background-color: rgba(0, 120, 255, 0.15);
-            cursor: pointer;
-        }
-
+        /* Ledger & Formatting */
+        .ledger-panel { grid-column: 1 / -1; } /* Spans entire bottom row */
+        .hero-metric { font-size: 2rem; font-weight: bold; font-family: 'JetBrains Mono', monospace; transition: transform 0.2s; }
+        
         .critical-stagnant { color: var(--danger); font-weight: bold; }
         .critical-stockout { color: var(--warning); font-weight: bold; }
         .surplus-good { color: var(--neon-green); }
 
-        .right-column {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            overflow: hidden;
-        }
+        .asset-card { background: rgba(0,0,0,0.4); border: 1px dashed var(--lavender-dark); padding: 15px; border-radius: 6px; margin-bottom: 15px; font-family: 'JetBrains Mono', monospace; }
 
-        .asset-card {
-            background: rgba(0,0,0,0.4);
-            border: 1px dashed var(--lavender-dark);
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 15px;
-            font-family: 'JetBrains Mono', monospace;
+        /* Modal Subsystem */
+        .modal {
+            display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.85); justify-content: center; align-items: center; backdrop-filter: blur(5px);
         }
-
-        .action-btn {
-            width: 100%;
-            background: linear-gradient(45deg, var(--electric-blue), var(--lavender-dark));
-            color: white;
-            border: none;
-            padding: 15px;
-            font-family: 'Rajdhani', sans-serif;
-            font-size: 1.2rem;
-            font-weight: 700;
-            letter-spacing: 2px;
-            border-radius: 4px;
-            cursor: pointer;
-            text-transform: uppercase;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .action-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 120, 255, 0.4);
-            background: linear-gradient(45deg, var(--teal), var(--electric-blue));
-        }
-
-        .action-btn:disabled {
-            background: var(--lavender-dark);
-            color: rgba(255,255,255,0.3);
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .console {
-            background-color: rgba(0,0,0,0.6);
-            border: 1px solid var(--lavender-dark);
-            border-radius: 4px;
-            padding: 15px;
-            font-family: 'JetBrains Mono', monospace;
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            overflow-y: auto;
-            font-size: 0.9rem;
-        }
-
-        .route-winner {
-            border-left: 2px solid var(--neon-green);
-            padding-left: 10px;
-            margin-top: 10px;
-            background: rgba(0, 250, 154, 0.05);
-            padding: 10px;
-            border-radius: 0 4px 4px 0;
+        .modal-content {
+            background-color: var(--panel-bg); border: 1px solid var(--teal); padding: 30px; border-radius: 8px;
+            width: 800px; max-width: 90%; box-shadow: 0 0 40px rgba(0, 240, 255, 0.2); position: relative;
         }
     </style>
 </head>
@@ -261,24 +143,29 @@
 
     <nav>
         <h1>D.L.T. Rebalancing Engine</h1>
-        <span id="sysClock">STATUS: ACTIVE_MONITORING | SYS_TIME: 00:00:00</span>
+        <span id="sysClock">STATUS: INITIALIZING...</span>
     </nav>
 
-    <div class="container">
+    <div class="dashboard-grid">
+        
         <div class="panel">
-            <div class="panel-title">Live Network Telemetry</div>
+            <div class="panel-title">
+                <span>Live Network Telemetry</span>
+                <select id="nodeSelector" class="form-select" style="width: 250px; margin: 0;" onchange="UIController.setNodeFilter(this.value)">
+                    <option value="ALL">Loading Nodes...</option>
+                </select>
+            </div>
             <div class="controls">
-                <button class="filter-btn active" onclick="applyFilter('ALL')">ALL ASSETS</button>
-                <button class="filter-btn" onclick="applyFilter('STAGNANT')">CRITICAL STAGNANT</button>
-                <button class="filter-btn" onclick="applyFilter('STOCKOUT')">STOCKOUT RISK</button>
-                <button class="sim-btn" onclick="simulateMarket()">[+] ADVANCE MARKET 1 DAY</button>
+                <button class="filter-btn active" onclick="UIController.setHealthFilter('ALL', this)">ALL ASSETS</button>
+                <button class="filter-btn" onclick="UIController.setHealthFilter('STAGNANT', this)">CRITICAL STAGNANT</button>
+                <button class="filter-btn" onclick="UIController.setHealthFilter('STOCKOUT', this)">STOCKOUT RISK</button>
             </div>
             <div class="table-wrapper">
                 <table id="telemetryTable">
                     <thead>
                         <tr>
                             <th>SKU ID</th>
-                            <th>Node Location</th>
+                            <th>Location</th>
                             <th>Stock</th>
                             <th>Demand/Day</th>
                             <th>Stagnant Days</th>
@@ -290,192 +177,64 @@
             </div>
         </div>
 
-        <div class="right-column">
-            <div class="panel" style="flex: 0 0 auto;">
-                <h2 class="panel-title">Optimization Targeting</h2>
-                <div class="asset-card" id="selectedAssetDetails">
-                    <div style="color: var(--lavender-dark);">Awaiting target selection from telemetry...</div>
-                </div>
-                <button class="action-btn" id="optimizeBtn" disabled onclick="runNetworkOptimization()">Run Network Optimization</button>
+        <div class="panel">
+            <h2 class="panel-title">Command Center</h2>
+            <div class="asset-card" id="selectedAssetDetails">
+                <div style="color: var(--lavender-dark);">Awaiting target selection from telemetry...</div>
             </div>
-            <div class="panel" style="flex-grow: 1;">
-                <h2 class="panel-title">Engine Execution Log</h2>
-                <div class="console" id="outputConsole">
-                    <div style="color: var(--lavender-dark);">> System idle.</div>
+            
+            <div id="manualActionContainer" style="font-family: 'JetBrains Mono', monospace; font-size: 0.9rem;">
                 </div>
+
+            <button class="action-btn" id="optimizeBtn" disabled onclick="UIController.evaluateRoute()">Evaluate Route</button>
+        </div>
+
+        <div class="panel ledger-panel">
+            <div class="panel-title">
+                <span>Logistics Execution Ledger</span>
+                <span class="hero-metric" id="totalSavingsCounter" style="color: var(--text-main);">$0.00</span>
+            </div>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>Decision Type</th>
+                            <th>SKU Rebalanced</th>
+                            <th>Route Executed</th>
+                            <th>Net Network Savings</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ledgerBody">
+                        </tbody>
+                </table>
             </div>
         </div>
+
     </div>
 
+    <div id="comparisonModal" class="modal">
+        <div class="modal-content" id="modalContent">
+            </div>
+    </div>
+
+    <script src="js/data-engine.js"></script>
+    <script src="js/ui-controller.js"></script>
+    <script src="js/ledger-engine.js"></script>
+
     <script>
-let inventoryState = [];
-        let currentFilter = 'ALL';
-        let targetAsset = null;
-
-        // Dynamically load your actual 250-item CSV file
-        async function loadRealData() {
-            try {
-                // Vercel serves the CSV file directly from your root directory
-                const response = await fetch('/inventory_state.csv');
-                const data = await response.text();
-
-                // Split into rows and skip the header row
-                const rows = data.split('\n').slice(1); 
-                
-                rows.forEach(row => {
-                    if (row.trim() === '') return;
-                    const cols = row.split(',');
-                    
-                    inventoryState.push({
-                        sku: cols[0].trim(),
-                        node: cols[1].trim(),
-                        cost: parseFloat(cols[2].trim()),
-                        stock: parseInt(cols[3].trim()),
-                        demand: parseInt(cols[4].trim()),
-                        stagnant: parseInt(cols[5].trim()),
-                        leadTime: parseInt(cols[6].trim())
-                    });
-                });
-
-                renderTable();
-                
-                const consoleDiv = document.getElementById('outputConsole');
-                consoleDiv.innerHTML = `<div style="color: var(--neon-green);">> System connected. Live inventory database loaded.</div>`;
-                
-            } catch (error) {
-                const consoleDiv = document.getElementById('outputConsole');
-                consoleDiv.innerHTML = `<div style="color: var(--danger);">> CRITICAL ERROR: Could not locate inventory_state.csv database.</div>`;
-            }
-        }
-
-        function updateClock() {
-            const now = new Date();
-            document.getElementById('sysClock').innerText = `STATUS: ACTIVE_MONITORING | SYS_TIME: ${now.toLocaleTimeString('en-US', { hour12: false })}`;
-        }
-        setInterval(updateClock, 1000);
-
-        function applyFilter(filterType) {
-            currentFilter = filterType;
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-            renderTable();
-        }
-
-        function renderTable() {
-            const tbody = document.getElementById('tableBody');
-            tbody.innerHTML = '';
-
-            inventoryState.forEach((item, index) => {
-                let isStagnant = item.stagnant >= 90;
-                let reorderPoint = (item.demand * item.leadTime) * 1.2;
-                let isStockout = item.stock <= reorderPoint && item.demand > 0;
-
-                if (currentFilter === 'STAGNANT' && !isStagnant) return;
-                if (currentFilter === 'STOCKOUT' && !isStockout) return;
-
-                let stateLabel = '<span style="color: #888;">NORMAL</span>';
-                if (isStagnant) stateLabel = '<span class="critical-stagnant">DEAD STOCK</span>';
-                else if (isStockout) stateLabel = '<span class="critical-stockout">STOCKOUT RISK</span>';
-
-                const tr = document.createElement('tr');
-                tr.onclick = () => selectTarget(index);
-                
-                tr.innerHTML = `
-                    <td style="color: var(--teal); font-weight: bold;">${item.sku}</td>
-                    <td>${item.node}</td>
-                    <td>${item.stock}</td>
-                    <td>${item.demand}</td>
-                    <td class="${isStagnant ? 'critical-stagnant' : ''}">${item.stagnant}</td>
-                    <td>${stateLabel}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function simulateMarket() {
-            inventoryState.forEach(item => {
-                if (item.demand > 0) {
-                    let sales = Math.floor(item.demand * (0.8 + Math.random() * 0.4));
-                    item.stock = Math.max(0, item.stock - sales);
-                    item.demand = Math.max(1, item.demand + Math.floor((Math.random() - 0.5) * 4));
-                } else {
-                    item.stagnant += 1;
-                }
-            });
-            renderTable();
-            const consoleDiv = document.getElementById('outputConsole');
-            consoleDiv.innerHTML = `<div style="color: var(--neon-green);">> Market advanced 1 day. Inventory levels shifted.</div>` + consoleDiv.innerHTML;
-        }
-
-        function selectTarget(index) {
-            targetAsset = inventoryState[index];
-            const detailsDiv = document.getElementById('selectedAssetDetails');
+        window.onload = async () => {
+            console.log("Initializing DLT Engine...");
+            // 1. Fetch the 250 items via Data Engine
+            const dataLoaded = await DataEngine.loadInventoryData();
             
-            if (targetAsset.stagnant < 90) {
-                detailsDiv.innerHTML = `<div style="color: var(--warning);">Target ${targetAsset.sku} at ${targetAsset.node} is not classified as critical dead stock. Optimization disabled.</div>`;
-                document.getElementById('optimizeBtn').disabled = true;
-                return;
+            if (dataLoaded) {
+                // 2. Wake up the UI Controller and populate tables
+                UIController.init();
+                UIController.renderTable();
             }
-
-            detailsDiv.innerHTML = `
-                <div style="color: var(--electric-blue); margin-bottom: 10px; text-transform: uppercase;">Target Acquired: Origin Node</div>
-                <div><span style="color: var(--lavender);">SKU:</span> <span style="color: var(--text-main);">${targetAsset.sku}</span></div>
-                <div><span style="color: var(--lavender);">Location:</span> <span style="color: var(--text-main);">${targetAsset.node}</span></div>
-                <div><span style="color: var(--lavender);">On-Hand:</span> <span style="color: var(--text-main);">${targetAsset.stock} Units</span></div>
-                <div><span style="color: var(--lavender);">Stagnation:</span> <span class="critical-stagnant">${targetAsset.stagnant} Days</span></div>
-            `;
-            document.getElementById('optimizeBtn').disabled = false;
-        }
-
-        async function runNetworkOptimization() {
-            if (!targetAsset) return;
-
-            const consoleDiv = document.getElementById('outputConsole');
-            consoleDiv.innerHTML = `<div style="color: var(--electric-blue);">> Contacting Cloud API for ${targetAsset.sku}...</div>`;
-            document.getElementById('optimizeBtn').disabled = true;
-
-            const params = new URLSearchParams({
-                sku: targetAsset.sku,
-                origin: targetAsset.node,
-                cost: targetAsset.cost,
-                stock: targetAsset.stock,
-                stagnant: targetAsset.stagnant
-            });
-
-            try {
-                const response = await fetch(`https://cloud-chain-capstone.onrender.com/api/optimize?${params}`);
-                const data = await response.json();
-
-                let html = `<div>> Network scan complete. Analyzing matrix...</div>`;
-
-                if (data.success) {
-                    const winner = data.winner;
-                    html += `
-                        <div class="route-winner">
-                            <div style="color: var(--neon-green); font-weight: bold; font-size: 1.1rem; margin-bottom: 5px;">[DECISION] OPTIMAL ROUTE AUTHORIZED</div>
-                            <div>Execute Transfer: <span style="color: white;">${winner.transferQuantity} units</span> to <span style="color: white;">${winner.destinationNode}</span></div>
-                            <div>Total Network Savings: <span style="color: white; font-weight: bold;">+$${winner.netSavings.toFixed(2)}</span></div>
-                        </div>
-                    `;
-                    targetAsset.stock -= winner.transferQuantity;
-                    renderTable();
-                } else {
-                    html += `<div style="color: var(--danger); margin-top: 15px;">> [RESULT] Optimization Failed. No profitable routes discovered across the network. Hold asset.</div>`;
-                }
-
-                consoleDiv.innerHTML += html;
-            } catch (error) {
-                consoleDiv.innerHTML += `<div style="color: var(--danger);">> API Connection Error. Ensure Render service is awake.</div>`;
-            }
-            
-            document.getElementById('optimizeBtn').disabled = false;
-        }
-
-        // Initialize by loading the real data
-        window.onload = () => {
-            loadRealData();
-            updateClock();
         };
     </script>
+
 </body>
 </html>

@@ -1,13 +1,12 @@
 /**
  * UI-CONTROLLER.JS
- * Presentation Layer: Handles DOM manipulation, routing modals, and context-aware forms.
+ * Presentation Layer: Handles DOM, Modals, and Context-Aware Logic.
  */
 
 const UIController = {
     currentHealthFilter: 'ALL',
     currentNodeFilter: 'ALL',
     selectedAsset: null,
-    
 
     init() {
         this.updateClock();
@@ -34,10 +33,8 @@ const UIController = {
     },
 
     populateNodeDropdown() {
-        // Extract unique nodes from the data engine
         const nodes = [...new Set(DataEngine.inventoryState.map(item => item.node))].sort();
         const selector = document.getElementById('nodeSelector');
-        
         if (!selector) return;
         
         selector.innerHTML = `<option value="ALL">Global Network View</option>`;
@@ -52,24 +49,17 @@ const UIController = {
         tbody.innerHTML = '';
 
         DataEngine.inventoryState.forEach((item, index) => {
-            // Supply Chain Logic Triggers
             let isStagnant = item.stagnant >= 90;
             let reorderPoint = (item.demand * item.leadTime) * 1.2;
             let isStockout = item.stock <= reorderPoint && item.demand > 0;
 
-            // Apply Filters
             if (this.currentHealthFilter === 'STAGNANT' && !isStagnant) return;
             if (this.currentHealthFilter === 'STOCKOUT' && !isStockout) return;
             if (this.currentNodeFilter !== 'ALL' && item.node !== this.currentNodeFilter) return;
 
             let stateLabel = '<span style="color: #888;">NORMAL</span>';
-            let rowClass = '';
-
-            if (isStagnant) {
-                stateLabel = '<span class="critical-stagnant">DEAD STOCK</span>';
-            } else if (isStockout) {
-                stateLabel = '<span class="critical-stockout">STOCKOUT RISK</span>';
-            }
+            if (isStagnant) stateLabel = '<span class="critical-stagnant">DEAD STOCK</span>';
+            else if (isStockout) stateLabel = '<span class="critical-stockout">STOCKOUT RISK</span>';
 
             const tr = document.createElement('tr');
             tr.onclick = () => this.selectTarget(index);
@@ -77,7 +67,7 @@ const UIController = {
             tr.innerHTML = `
                 <td style="color: var(--teal); font-weight: bold;">${item.sku}</td>
                 <td>${item.node}</td>
-                <td>${item.stock}</td>
+                <td style="font-weight: bold;">${item.stock}</td>
                 <td>${item.demand}</td>
                 <td class="${isStagnant ? 'critical-stagnant' : ''}">${item.stagnant}</td>
                 <td>${stateLabel}</td>
@@ -89,8 +79,8 @@ const UIController = {
     selectTarget(index) {
         this.selectedAsset = DataEngine.inventoryState[index];
         const detailsDiv = document.getElementById('selectedAssetDetails');
-        const optimizeBtn = document.getElementById('optimizeBtn');
         const manualActionDiv = document.getElementById('manualActionContainer');
+        const optimizeBtn = document.getElementById('optimizeBtn');
         
         let isStagnant = this.selectedAsset.stagnant >= 90;
         let reorderPoint = (this.selectedAsset.demand * this.selectedAsset.leadTime) * 1.2;
@@ -100,61 +90,78 @@ const UIController = {
         let actionLabel = 'Transfer Details';
         let optionsHtml = '';
 
-        // Context-Aware UI Generation
         if (isStagnant) {
             mode = 'PUSH';
-            actionLabel = 'Surplus Detected: Push Inventory';
+            actionLabel = 'Surplus: Push Inventory';
+            // PUSH: Only show nodes that already carry this SKU to push to
             optionsHtml = `
-                <label>Transfer To:</label>
+                <label style="color: var(--lavender);">Transfer To:</label>
                 <select id="manualNodeSelect" class="form-select">
-                    ${this.generateNodeOptions(this.selectedAsset.node)}
+                    ${this.generateValidNodes(this.selectedAsset.sku, this.selectedAsset.node, 'PUSH')}
                 </select>
+                <label style="color: var(--lavender); margin-top: 10px; display: block;">Quantity:</label>
+                <input type="number" id="transferQty" class="form-select" value="10" min="1" max="${this.selectedAsset.stock}">
             `;
         } else if (isStockout) {
             mode = 'PULL';
-            actionLabel = 'Deficit Detected: Pull Replenishment';
+            actionLabel = 'Deficit: Pull Replenishment';
+            // PULL: Only show nodes that have surplus stock of this SKU
             optionsHtml = `
-                <label>Transfer From:</label>
+                <label style="color: var(--lavender);">Transfer From:</label>
                 <select id="manualNodeSelect" class="form-select">
-                    <option value="Central Warehouse">Central Warehouse (Vertical)</option>
-                    ${this.generateNodeOptions(this.selectedAsset.node)}
+                    <option value="Central Warehouse">Central Warehouse (Infinite Stock)</option>
+                    ${this.generateValidNodes(this.selectedAsset.sku, this.selectedAsset.node, 'PULL')}
                 </select>
+                <label style="color: var(--lavender); margin-top: 10px; display: block;">Quantity:</label>
+                <input type="number" id="transferQty" class="form-select" value="10" min="1">
             `;
         } else {
-            detailsDiv.innerHTML = `<div style="color: var(--warning);">Target ${this.selectedAsset.sku} at ${this.selectedAsset.node} is stable. Optimization bypassed.</div>`;
+            detailsDiv.innerHTML = `<div style="color: var(--warning);">Target stable. Optimization bypassed.</div>`;
             optimizeBtn.disabled = true;
             manualActionDiv.innerHTML = '';
             return;
         }
 
-        // Render the Command Center Panel
         detailsDiv.innerHTML = `
             <div style="color: var(--electric-blue); margin-bottom: 10px; text-transform: uppercase;">${actionLabel}</div>
-            <div><span style="color: var(--lavender);">SKU:</span> <span style="color: var(--text-main);">${this.selectedAsset.sku}</span></div>
-            <div><span style="color: var(--lavender);">Origin:</span> <span style="color: var(--text-main);">${this.selectedAsset.node}</span></div>
-            <div><span style="color: var(--lavender);">On-Hand:</span> <span style="color: var(--text-main);">${this.selectedAsset.stock} Units</span></div>
-            <div><span style="color: var(--lavender);">Unit Cost:</span> <span style="color: var(--text-main);">$${this.selectedAsset.cost.toFixed(2)}</span></div>
+            <div><span style="color: var(--lavender);">SKU:</span> <span>${this.selectedAsset.sku}</span></div>
+            <div><span style="color: var(--lavender);">Location:</span> <span>${this.selectedAsset.node}</span></div>
+            <div><span style="color: var(--lavender);">Current Stock:</span> <span>${this.selectedAsset.stock}</span></div>
         `;
         
         manualActionDiv.innerHTML = optionsHtml;
         optimizeBtn.disabled = false;
-        
-        // Tag the button with the current operational mode
         optimizeBtn.dataset.mode = mode;
     },
 
-    generateNodeOptions(excludeNode) {
-        const nodes = [...new Set(DataEngine.inventoryState.map(item => item.node))].sort();
-        return nodes.filter(n => n !== excludeNode).map(n => `<option value="${n}">${n} (Lateral)</option>`).join('');
+    generateValidNodes(sku, excludeNode, mode) {
+        // Filter strictly for nodes carrying this exact SKU
+        let validPeers = DataEngine.inventoryState.filter(item => item.sku === sku && item.node !== excludeNode);
+        
+        if (mode === 'PULL') {
+            // If pulling, peer must have stock available to give
+            validPeers = validPeers.filter(item => item.stock > 10);
+        }
+
+        if (validPeers.length === 0) {
+            return `<option value="NONE" disabled>No valid lateral peers found</option>`;
+        }
+
+        return validPeers.map(n => `<option value="${n.node}">${n.node} (Avail: ${n.stock})</option>`).join('');
     },
 
     async evaluateRoute() {
         if (!this.selectedAsset) return;
 
         const manualSelection = document.getElementById('manualNodeSelect').value;
+        const transferQty = parseInt(document.getElementById('transferQty').value);
         const mode = document.getElementById('optimizeBtn').dataset.mode;
         
-        // Payload prepared for the upcoming Java engine update
+        if (manualSelection === "NONE") {
+            alert("No valid routes available for this item.");
+            return;
+        }
+
         const payload = {
             sku: this.selectedAsset.sku,
             origin: this.selectedAsset.node,
@@ -165,73 +172,84 @@ const UIController = {
             mode: mode
         };
 
-        // Trigger loading state in UI
-        this.showModalLoading();
-
-        // Fetch optimized results from Render
-        const optimizationData = await DataEngine.fetchOptimization(payload);
-        
-        // Render the Dual-Comparison Modal
-        this.renderDualComparison(optimizationData, manualSelection, mode);
-    },
-
-    showModalLoading() {
         const modal = document.getElementById('comparisonModal');
         const modalContent = document.getElementById('modalContent');
         modal.style.display = 'flex';
-        modalContent.innerHTML = `<div style="text-align: center; color: var(--electric-blue); padding: 40px;">>> Pinging Cloud Engine... Computing network paths...</div>`;
-    },
+        modalContent.innerHTML = `<div style="text-align: center; color: var(--electric-blue); padding: 40px;">>> Pinging Cloud Engine...</div>`;
 
-    renderDualComparison(cloudData, humanChoice, mode) {
-        // This function wires directly into the HTML skeleton we will build in index.html
-        // It injects the specific math for the Left Column (Human) and Right Column (Cloud)
+        const optimizationData = await DataEngine.fetchOptimization(payload);
         
-        const modalContent = document.getElementById('modalContent');
-        
-        // Fallback UI generation logic will be placed here to populate the modal visually
-        // before passing the final execution command to ledger-engine.js
-        
+        // Render Math in the Modal
         let html = `
-            <h2 style="color: var(--lavender); margin-bottom: 20px; text-align: center;">ROUTE EVALUATION</h2>
+            <h2 style="color: var(--lavender); margin-bottom: 20px; text-align: center;">NETWORK ROUTE EVALUATION</h2>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                <div style="border: 1px solid var(--danger); padding: 15px; background: rgba(255,51,102,0.05); border-radius: 4px;">
-                    <h3 style="color: var(--danger); margin-top: 0;">HUMAN INTUITION</h3>
-                    <div><strong>Selection:</strong> ${humanChoice}</div>
-                    <div style="margin-top: 20px; text-align: center;">
-                        <button class="action-btn" style="background: var(--danger);" onclick="UIController.executeTransfer('MANUAL', '${humanChoice}')">Force Manual Route</button>
-                    </div>
+                
+                <div style="border: 1px solid var(--warning); padding: 15px; background: rgba(255, 170, 0, 0.05); border-radius: 4px;">
+                    <h3 style="color: var(--warning); margin-top: 0;">HUMAN SELECTION</h3>
+                    <div style="margin-bottom: 10px;"><strong>Route:</strong> ${mode === 'PUSH' ? this.selectedAsset.node + ' &rarr; ' + manualSelection : manualSelection + ' &rarr; ' + this.selectedAsset.node}</div>
+                    <div style="color: #ccc; font-size: 0.9rem;">Estimated Freight: -$${(transferQty * 4.5).toFixed(2)}</div>
+                    <div style="color: #ccc; font-size: 0.9rem;">Sunk Cost Penalty: -$${(manualSelection === 'Central Warehouse' ? (this.selectedAsset.cost * transferQty).toFixed(2) : '0.00')}</div>
+                    
+                    <button class="action-btn" style="background: transparent; border: 1px solid var(--warning); color: var(--warning);" 
+                    onclick="UIController.executeTransfer('MANUAL', '${manualSelection}', ${transferQty}, ${(transferQty * -4.5)})">Force Manual Route</button>
                 </div>
                 
                 <div style="border: 1px solid var(--neon-green); padding: 15px; background: rgba(0,250,154,0.05); border-radius: 4px;">
                     <h3 style="color: var(--neon-green); margin-top: 0;">CLOUD OPTIMIZED</h3>
-                    <div><strong>Selection:</strong> ${cloudData.success ? cloudData.winner.destinationNode : 'Hold Asset (No Profitable Route)'}</div>
-                    <div style="margin-top: 20px; text-align: center;">
-                        <button class="action-btn" style="background: var(--neon-green); color: black;" onclick="UIController.executeTransfer('OPTIMIZED', '${cloudData.success ? cloudData.winner.destinationNode : 'HOLD'}')">Execute Optimized</button>
-                    </div>
+                    <div style="margin-bottom: 10px;"><strong>Optimal Route:</strong> ${optimizationData.success ? optimizationData.winner.destinationNode : 'HOLD ASSET'}</div>
+                    <div style="color: #ccc; font-size: 0.9rem;">Calculated Savings: <span style="color: var(--neon-green);">+$${optimizationData.success ? optimizationData.winner.netSavings.toFixed(2) : '0.00'}</span></div>
+                    <div style="color: #ccc; font-size: 0.9rem;">Holding Cost Relieved: Yes</div>
+                    
+                    <button class="action-btn" style="background: var(--neon-green); color: black;" 
+                    onclick="UIController.executeTransfer('OPTIMIZED', '${optimizationData.success ? optimizationData.winner.destinationNode : 'HOLD'}', ${transferQty}, ${optimizationData.success ? optimizationData.winner.netSavings : 0})">
+                    Execute Optimized</button>
                 </div>
             </div>
-            <button onclick="document.getElementById('comparisonModal').style.display='none'" style="margin-top: 20px; width: 100%; padding: 10px; background: transparent; border: 1px solid var(--lavender); color: var(--text-main); cursor: pointer;">Cancel Evaluation</button>
+            <button onclick="document.getElementById('comparisonModal').style.display='none'" style="margin-top: 20px; width: 100%; padding: 10px; background: transparent; border: 1px solid var(--lavender); color: var(--text-main); cursor: pointer;">Cancel</button>
         `;
 
         modalContent.innerHTML = html;
     },
 
-    executeTransfer(decisionType, destination) {
-        // Hide the modal
-        document.getElementById('comparisonModal').style.display = 'none';
-        
-        // Send the execution result to the Ledger Engine (which we will build next)
-        if (window.LedgerEngine) {
-            // LedgerEngine.recordTransaction(this.selectedAsset, decisionType, destination);
-            console.log(`[UI-CONTROLLER] Handing off ${decisionType} execution to Ledger Engine.`);
+    executeTransfer(decisionType, targetNode, quantity, netImpact) {
+        if (targetNode === 'HOLD') {
+            document.getElementById('comparisonModal').style.display = 'none';
+            return;
         }
+
+        const mode = document.getElementById('optimizeBtn').dataset.mode;
         
-        // Reset selection
+        // 1. Physically update the local arrays so the table changes
+        let originNode = mode === 'PUSH' ? this.selectedAsset.node : targetNode;
+        let destNode = mode === 'PUSH' ? targetNode : this.selectedAsset.node;
+
+        if (originNode !== 'Central Warehouse') {
+            let originItem = DataEngine.inventoryState.find(i => i.sku === this.selectedAsset.sku && i.node === originNode);
+            if (originItem) originItem.stock -= quantity;
+        }
+
+        if (destNode !== 'Central Warehouse') {
+            let destItem = DataEngine.inventoryState.find(i => i.sku === this.selectedAsset.sku && i.node === destNode);
+            if (destItem) destItem.stock += quantity;
+        }
+
+        // 2. Hide Modal and Update UI
+        document.getElementById('comparisonModal').style.display = 'none';
+        this.renderTable();
+        
+        // 3. Print success text in the console
+        const consoleDiv = document.getElementById('outputConsole');
+        consoleDiv.innerHTML = `<div style="color: var(--neon-green);">>> SUCCESS: ${quantity} units of ${this.selectedAsset.sku} transferred ${originNode} &rarr; ${destNode}. Database state updated.</div>` + consoleDiv.innerHTML;
+
+        // 4. Fire the ledger event
+        if (window.LedgerEngine) {
+            LedgerEngine.recordTransaction(this.selectedAsset, decisionType, targetNode, netImpact);
+        }
+
+        // 5. Clear selection
         this.selectedAsset = null;
         document.getElementById('selectedAssetDetails').innerHTML = `<div style="color: var(--lavender-dark);">Awaiting target selection from telemetry...</div>`;
         document.getElementById('manualActionContainer').innerHTML = '';
         document.getElementById('optimizeBtn').disabled = true;
-        
-        this.renderTable();
     }
 };

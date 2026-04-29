@@ -12,13 +12,17 @@ public class TransshipmentOptimizer {
     private static final double RATE_PER_MILE = 0.15;
     private static final double HANDLING_FEE = 20.0;
     private static final int ORIGIN_SAFETY_STOCK_BUFFER = 10;
+    
+    // Central Warehouse Baselines
+    private static final double CENTRAL_WAREHOUSE_FREIGHT = 120.0;
+    private static final String CENTRAL_NODE_NAME = "Central Warehouse";
 
     private static Map<String, Map<String, Double>> distanceMatrix = new HashMap<>();
     private static List<InventoryRecord> inventoryState = new ArrayList<>();
 
     public static void main(String[] args) {
         try {
-            System.out.println("Starting up API...");
+            System.out.println("Starting up Global Optimization API...");
             loadDistanceMatrix("network_distances.csv");
             loadInventoryState("inventory_state.csv");
 
@@ -36,8 +40,10 @@ public class TransshipmentOptimizer {
                 double targetCost = Double.parseDouble(ctx.queryParam("cost"));
                 int targetStock = Integer.parseInt(ctx.queryParam("stock"));
                 int targetStagnant = Integer.parseInt(ctx.queryParam("stagnant"));
+                String targetNode = ctx.queryParam("targetNode"); // The manual human choice
+                String mode = ctx.queryParam("mode"); // PUSH or PULL
 
-                OptimizationResult response = runOptimizationEngine(targetSku, originNode, targetCost, targetStock, targetStagnant);
+                OptimizationResult response = runGlobalEngine(targetSku, originNode, targetCost, targetStock, targetStagnant, targetNode, mode);
                 ctx.json(new Gson().toJson(response));
             });
             
@@ -47,29 +53,61 @@ public class TransshipmentOptimizer {
         }
     }
 
-    public static OptimizationResult runOptimizationEngine(String sku, String originNode, double unitCost, int originStock, int daysStagnant) {
+    public static OptimizationResult runGlobalEngine(String sku, String lockedNode, double unitCost, int stock, int stagnant, String manualTarget, String mode) {
         OptimizationResult result = new OptimizationResult();
         
-        double accumulatedHoldingCost = (unitCost * ANNUAL_HOLDING_COST_PCT) * (daysStagnant / 365.0);
+        double accumulatedHoldingCost = (unitCost * ANNUAL_HOLDING_COST_PCT) * (stagnant / 365.0);
         double costOfLostSale = unitCost * PROFIT_MARGIN_PCT;
-        double totalCostOfInaction = accumulatedHoldingCost + costOfLostSale;
-        int originSurplus = originStock - ORIGIN_SAFETY_STOCK_BUFFER;
 
-        for (InventoryRecord dest : inventoryState) {
-            if (dest.sku.equals(sku) && !dest.node.equals(originNode)) {
-                double reorderPoint = (dest.dailyDemand * dest.leadTime) * 1.2;
-                
-                if (dest.currentStock <= reorderPoint && dest.dailyDemand > 0) {
-                    double distance = distanceMatrix.getOrDefault(originNode, new HashMap<>()).getOrDefault(dest.node, 9999.0);
-                    double totalFreightCost = BASE_FREIGHT_COST + (distance * RATE_PER_MILE) + HANDLING_FEE;
+        // PUSH MODE: Locked Node has Dead Stock. We need to find a Destination.
+        if ("PUSH".equalsIgnoreCase(mode)) {
+            double totalCostOfInaction = accumulatedHoldingCost + costOfLostSale;
+            int originSurplus = stock - ORIGIN_SAFETY_STOCK_BUFFER;
 
-                    if (totalCostOfInaction > totalFreightCost) {
-                        int destDeficit = (int) Math.ceil(reorderPoint - dest.currentStock);
-                        int transferQuantity = Math.min(originSurplus, destDeficit);
-                        double netSavings = totalCostOfInaction - totalFreightCost;
+            for (InventoryRecord dest : inventoryState) {
+                if (dest.sku.equals(sku) && !dest.node.equals(lockedNode)) {
+                    double reorderPoint = (dest.dailyDemand * dest.leadTime) * 1.2;
+                    
+                    if (dest.currentStock <= reorderPoint && dest.dailyDemand > 0) {
+                        double distance = distanceMatrix.getOrDefault(lockedNode, new HashMap<>()).getOrDefault(dest.node, 9999.0);
+                        double totalFreightCost = BASE_FREIGHT_COST + (distance * RATE_PER_MILE) + HANDLING_FEE;
 
-                        if (transferQuantity > 0) {
-                            result.viableRoutes.add(new RouteDecision(dest.node, distance, transferQuantity, netSavings));
+                        if (totalCostOfInaction > totalFreightCost) {
+                            int destDeficit = (int) Math.ceil(reorderPoint - dest.currentStock);
+                            int transferQuantity = Math.min(originSurplus, destDeficit);
+                            double netSavings = totalCostOfInaction - totalFreightCost;
+
+                            if (transferQuantity > 0) {
+                                result.viableRoutes.add(new RouteDecision(dest.node, distance, transferQuantity, netSavings));
+                            }
+                        }
+                    }
+                }
+            }
+        } 
+        // PULL MODE: Locked Node has a Stockout. We need to find an Origin.
+        else if ("PULL".equalsIgnoreCase(mode)) {
+            // First, calculate the "Human/Baseline" Central Warehouse penalty
+            double cwPenalty = CENTRAL_WAREHOUSE_FREIGHT + unitCost; // Freight + New Capital Expenditure
+
+            for (InventoryRecord origin : inventoryState) {
+                if (origin.sku.equals(sku) && !origin.node.equals(lockedNode)) {
+                    int surplus = origin.currentStock - ORIGIN_SAFETY_STOCK_BUFFER;
+                    
+                    // Does this peer node have dead stock we can pull?
+                    if (surplus > 0 && origin.daysStagnant >= 90) {
+                        double distance = distanceMatrix.getOrDefault(origin.node, new HashMap<>()).getOrDefault(lockedNode, 9999.0);
+                        double lateralFreightCost = BASE_FREIGHT_COST + (distance * RATE_PER_MILE) + HANDLING_FEE;
+                        
+                        // By pulling lateral dead stock, we avoid buying a new unit AND save the holding cost
+                        double peerHoldingCostSaved = (unitCost * ANNUAL_HOLDING_COST_PCT) * (origin.daysStagnant / 365.0);
+                        double lateralNetCost = lateralFreightCost - peerHoldingCostSaved;
+
+                        // Does this beat the Central Warehouse?
+                        if (lateralNetCost < cwPenalty) {
+                            double netSavings = cwPenalty - lateralNetCost;
+                            int transferQuantity = Math.min(surplus, 50); // Arbitrary replenishment cap for demo
+                            result.viableRoutes.add(new RouteDecision(origin.node, distance, transferQuantity, netSavings));
                         }
                     }
                 }
@@ -85,12 +123,13 @@ public class TransshipmentOptimizer {
         return result;
     }
 
+    // --- Helper Methods & Classes Remain the Same ---
     public static void loadDistanceMatrix(String filePath) {
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             br.readLine(); 
             String line;
             while ((line = br.readLine()) != null) {
-                if (line.trim().isEmpty()) continue; // Safeguard against blank lines
+                if (line.trim().isEmpty()) continue;
                 String[] data = line.split(",");
                 if (data.length >= 3) {
                     distanceMatrix.computeIfAbsent(data[0].trim(), k -> new HashMap<>())
@@ -106,7 +145,7 @@ public class TransshipmentOptimizer {
             br.readLine();
             String line;
             while ((line = br.readLine()) != null) {
-                if (line.trim().isEmpty()) continue; // Safeguard against blank lines
+                if (line.trim().isEmpty()) continue;
                 String[] data = line.split(",");
                 if (data.length >= 7) {
                     inventoryState.add(new InventoryRecord(data[0].trim(), data[1].trim(), 

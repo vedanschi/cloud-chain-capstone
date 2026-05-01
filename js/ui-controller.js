@@ -8,7 +8,7 @@ const UIController = {
     currentNodeFilter: 'ALL',
     selectedAsset: null,
     lastOptimization: null,
-    currentMode: 'NORMAL',
+    currentMode: 'PUSH', // Default state
 
     init() {
         this.injectStylesAndControls();
@@ -17,7 +17,6 @@ const UIController = {
         this.populateNodeDropdown();
     },
 
-    // Dynamically injects the 5-tier taxonomy UI without needing to edit index.html
     injectStylesAndControls() {
         const style = document.createElement('style');
         style.innerHTML = `
@@ -26,6 +25,7 @@ const UIController = {
             .tax-surplus { color: var(--neon-green); font-weight: bold; }
             .tax-dead { color: #888; font-weight: bold; text-decoration: line-through; }
             .tax-normal { color: #ccc; }
+            .mode-toggle { width: 100%; margin-bottom: 15px; padding: 10px; background: rgba(0,240,255,0.1); border: 1px solid var(--teal); color: var(--teal); font-weight: bold; cursor: pointer; text-align: center; }
         `;
         document.head.appendChild(style);
 
@@ -76,7 +76,6 @@ const UIController = {
         tbody.innerHTML = '';
 
         DataEngine.inventoryState.forEach((item, index) => {
-            // The 5-Tier Supply Chain Taxonomy Math
             let reorderPoint = (item.demand * item.leadTime) * 1.2;
             
             let isDeadStock = item.stagnant >= 90;
@@ -90,11 +89,9 @@ const UIController = {
             else if (isStockoutRisk) stateCategory = 'STOCKOUT';
             else if (isSurplus) stateCategory = 'SURPLUS';
 
-            // Apply Filters
             if (this.currentHealthFilter !== 'ALL' && stateCategory !== this.currentHealthFilter) return;
             if (this.currentNodeFilter !== 'ALL' && item.node !== this.currentNodeFilter) return;
 
-            // UI Labels
             let stateLabel = '<span class="tax-normal">NORMAL</span>';
             if (isDeadStock) stateLabel = '<span class="tax-dead">DEAD STOCK</span>';
             else if (isCritical) stateLabel = '<span class="tax-critical">CRITICAL SHORTAGE</span>';
@@ -118,26 +115,30 @@ const UIController = {
 
     async selectTarget(index, stateCategory) {
         this.selectedAsset = DataEngine.inventoryState[index];
-        this.lastOptimization = null;
         
+        // Define default logical direction, but allow user to change it later
+        if (stateCategory === 'DEAD_STOCK' || stateCategory === 'SURPLUS') this.currentMode = 'PUSH';
+        else if (stateCategory === 'CRITICAL' || stateCategory === 'STOCKOUT') this.currentMode = 'PULL';
+        else this.currentMode = 'PUSH'; 
+
+        await this.renderCommandCenter();
+    },
+
+    async changeMode(newMode) {
+        this.currentMode = newMode;
+        await this.renderCommandCenter();
+    },
+
+    async renderCommandCenter() {
         const detailsDiv = document.getElementById('selectedAssetDetails');
         const manualActionDiv = document.getElementById('manualActionContainer');
         const optimizeBtn = document.getElementById('optimizeBtn');
-        
-        // 1. Determine Logistics Mode based on Taxonomy
-        if (stateCategory === 'DEAD_STOCK' || stateCategory === 'SURPLUS') this.currentMode = 'PUSH';
-        else if (stateCategory === 'CRITICAL' || stateCategory === 'STOCKOUT') this.currentMode = 'PULL';
-        else this.currentMode = 'NORMAL'; // Unrestricted Fluidity
 
-        // 2. Show Pre-Calculation Loading State
-        detailsDiv.innerHTML = `
-            <div style="color: var(--electric-blue); font-weight: bold; margin-bottom: 10px;">>> ENGINE ENGAGED</div>
-            <div style="color: #ccc;">Scanning network matrix for ${this.selectedAsset.sku}...</div>
-        `;
+        detailsDiv.innerHTML = `<div style="color: var(--electric-blue); font-weight: bold; margin-bottom: 10px;">>> ENGINE ENGAGED: Scanning network...</div>`;
         manualActionDiv.innerHTML = '';
         optimizeBtn.disabled = true;
 
-        // 3. Autonomous Background Routing
+        // Fetch optimization with "NORMAL" payload for push to allow unrestricted fluidity in the backend
         const payload = {
             sku: this.selectedAsset.sku,
             origin: this.selectedAsset.node,
@@ -145,39 +146,68 @@ const UIController = {
             stock: this.selectedAsset.stock,
             stagnant: this.selectedAsset.stagnant,
             targetNode: "NONE",
-            mode: this.currentMode
+            mode: this.currentMode === 'PUSH' ? 'NORMAL' : 'PULL' 
         };
 
         this.lastOptimization = await DataEngine.fetchOptimization(payload);
 
-        // 4. Render the Actionable Command Center
-        let actionLabel = this.currentMode === 'PULL' ? 'Deficit: Pull Replenishment' : 'Surplus: Push/Transfer Inventory';
+        let actionLabel = this.currentMode === 'PULL' ? 'Inbound: Pull Replenishment' : 'Outbound: Push Inventory';
         
+        let recommendationHtml = '';
+        if (this.currentMode === 'PULL') {
+            recommendationHtml = `Route from ${this.lastOptimization.winner.destinationNode} (Est. Savings: +$${this.lastOptimization.winner.netSavings.toFixed(2)})`;
+        } else {
+            // Corrected PUSH fallback text
+            if (this.lastOptimization.success) {
+                recommendationHtml = `Route to ${this.lastOptimization.winner.destinationNode} (Est. Savings: +$${this.lastOptimization.winner.netSavings.toFixed(2)})`;
+            } else {
+                recommendationHtml = `<span style="color: var(--warning);">HOLD ASSET (No Profitable Lateral Routes)</span>`;
+            }
+        }
+
         detailsDiv.innerHTML = `
             <div style="color: var(--electric-blue); margin-bottom: 10px; font-weight: bold; text-transform: uppercase;">${actionLabel}</div>
-            <div><span style="color: var(--lavender);">Target SKU:</span> <span>${this.selectedAsset.sku}</span></div>
-            <div><span style="color: var(--lavender);">Origin Node:</span> <span>${this.selectedAsset.node}</span></div>
+            <div style="display: flex; justify-content: space-between;">
+                <div><span style="color: var(--lavender);">Target SKU:</span> <span>${this.selectedAsset.sku}</span></div>
+                <div><span style="color: var(--lavender);">On-Hand:</span> <span>${this.selectedAsset.stock}</span></div>
+            </div>
+            <div><span style="color: var(--lavender);">Active Node:</span> <span>${this.selectedAsset.node}</span></div>
             <hr style="border-color: rgba(162, 141, 236, 0.2); margin: 10px 0;">
             <div style="color: var(--neon-green); font-weight: bold;">Cloud Recommendation:</div>
-            <div style="color: white; font-size: 1.1rem;">
-                ${this.lastOptimization.success 
-                    ? `Route to ${this.lastOptimization.winner.destinationNode} (Est. Savings: +$${this.lastOptimization.winner.netSavings.toFixed(2)})` 
-                    : `Central Warehouse Fallback Required`}
-            </div>
+            <div style="color: white; font-size: 1.1rem;">${recommendationHtml}</div>
         `;
-        
+
         let allNodes = [...new Set(DataEngine.inventoryState.map(item => item.node))].sort();
-        let optionsHtml = allNodes.filter(n => n !== this.selectedAsset.node).map(n => `<option value="${n}">${n}</option>`).join('');
+        let validPeers = allNodes.filter(n => n !== this.selectedAsset.node);
+        
+        // Generate valid manual options based on direction
+        let optionsHtml = '';
+        if (this.currentMode === 'PULL') {
+            optionsHtml = `<option value="Central Warehouse">Central Warehouse (Baseline)</option>`;
+            validPeers.forEach(n => {
+                let peer = DataEngine.inventoryState.find(i => i.node === n && i.sku === this.selectedAsset.sku);
+                let avail = peer ? peer.stock : 0;
+                optionsHtml += `<option value="${n}">${n} (Avail: ${avail})</option>`;
+            });
+        } else {
+            validPeers.forEach(n => {
+                optionsHtml += `<option value="${n}">${n}</option>`;
+            });
+        }
 
         manualActionDiv.innerHTML = `
             <div style="margin-top: 15px; border-top: 1px dashed var(--lavender-dark); padding-top: 15px;">
-                <label style="color: var(--warning); font-size: 0.85rem;">MANUAL OVERRIDE (OPTIONAL):</label>
+                <select class="mode-toggle" onchange="UIController.changeMode(this.value)">
+                    <option value="PUSH" ${this.currentMode === 'PUSH' ? 'selected' : ''}>[ DIRECTION: TRANSFER OUT ]</option>
+                    <option value="PULL" ${this.currentMode === 'PULL' ? 'selected' : ''}>[ DIRECTION: TRANSFER IN ]</option>
+                </select>
+                
+                <label style="color: var(--warning); font-size: 0.85rem; text-transform: uppercase;">Manual Override (Optional):</label>
                 <select id="manualNodeSelect" class="form-select">
-                    <option value="Central Warehouse">Central Warehouse (Baseline)</option>
                     ${optionsHtml}
                 </select>
                 <label style="color: var(--lavender); margin-top: 10px; display: block; font-size: 0.85rem;">TRANSFER QUANTITY:</label>
-                <input type="number" id="transferQty" class="form-select" value="10" min="1">
+                <input type="number" id="transferQty" class="form-select" value="1" min="1">
             </div>
         `;
         
@@ -191,15 +221,34 @@ const UIController = {
         const manualSelection = document.getElementById('manualNodeSelect').value;
         const transferQty = parseInt(document.getElementById('transferQty').value);
         
+        // Strict Constraint Validations
+        if (isNaN(transferQty) || transferQty <= 0) {
+            alert("Quantity must be a positive integer.");
+            return;
+        }
+
+        if (this.currentMode === 'PUSH') {
+            if (transferQty > this.selectedAsset.stock) {
+                alert(`Constraint Failure: You only have ${this.selectedAsset.stock} units available to transfer out.`);
+                return;
+            }
+        } else if (this.currentMode === 'PULL' && manualSelection !== 'Central Warehouse') {
+            let peer = DataEngine.inventoryState.find(i => i.node === manualSelection && i.sku === this.selectedAsset.sku);
+            let peerAvail = peer ? peer.stock : 0;
+            if (transferQty > peerAvail) {
+                alert(`Constraint Failure: The origin node (${manualSelection}) only has ${peerAvail} units available to pull.`);
+                return;
+            }
+        }
+
         const modal = document.getElementById('comparisonModal');
         const modalContent = document.getElementById('modalContent');
         modal.style.display = 'flex';
 
-        // Find the manual route in the API's viable array to get true math, if it exists
+        // Extract the math traces
         let manualRouteMath = this.lastOptimization.viableRoutes.find(r => r.destinationNode === manualSelection);
         let optimalRouteMath = this.lastOptimization.success ? this.lastOptimization.winner : null;
 
-        // Generate the HTML for the two comparison panes
         let manualHtml = this.generateMathHTML("HUMAN OVERRIDE", manualRouteMath, manualSelection === 'Central Warehouse', true, manualSelection, transferQty);
         let cloudHtml = this.generateMathHTML("CLOUD OPTIMIZED", optimalRouteMath, optimalRouteMath && optimalRouteMath.destinationNode === 'Central Warehouse', false, optimalRouteMath ? optimalRouteMath.destinationNode : 'Central Warehouse', transferQty);
 
@@ -213,7 +262,6 @@ const UIController = {
         `;
     },
 
-    // Generates the academic economic breakdown for the UI
     generateMathHTML(title, routeObj, isBaseline, isManual, nodeName, transferQty) {
         const themeColor = isManual ? 'var(--warning)' : 'var(--neon-green)';
         const bgTheme = isManual ? 'rgba(255,170,0,0.05)' : 'rgba(0,250,154,0.05)';
@@ -246,14 +294,14 @@ const UIController = {
                 </div>`;
         }
 
-        // Deconstruct the math for transparent academic display
         let ltlFreight = 50.0 + (routeObj.distanceMiles * 0.15) + 20.0;
         let holdingSaved = (this.selectedAsset.cost * 0.20) * ((this.selectedAsset.stagnant || 90) / 365.0); 
+        let actionDirection = this.currentMode === 'PULL' ? `from ${nodeName}` : `to ${nodeName}`;
 
         return `
             <div style="border: 1px solid ${themeColor}; padding: 20px; background: ${bgTheme}; border-radius: 4px;">
                 <h3 style="color: ${themeColor}; margin-top: 0; font-size: 1.1rem;">${title}</h3>
-                <div style="margin-bottom: 15px; font-weight: bold;">Route: Lateral Transshipment &rarr; ${nodeName}</div>
+                <div style="margin-bottom: 15px; font-weight: bold;">Route: Lateral Transshipment ${actionDirection}</div>
                 <div style="font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: #ccc;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span>LTL Freight & Handling:</span> <span style="color: var(--danger);">-$${ltlFreight.toFixed(2)}</span></div>
                     ${this.currentMode === 'PULL' ? `<div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span>Capital Exp. Avoided:</span> <span style="color: var(--neon-green);">+$${this.selectedAsset.cost.toFixed(2)}</span></div>` : ''}
@@ -282,7 +330,6 @@ const UIController = {
             console.error("Ledger connection failed:", e);
         }
 
-        // Database Write via DataEngine
         DataEngine.executeTransferDB({ 
             sku: this.selectedAsset.sku, 
             origin: originNode, 
@@ -297,7 +344,6 @@ const UIController = {
             });
         });
 
-        // Reset Command Center
         this.selectedAsset = null;
         document.getElementById('selectedAssetDetails').innerHTML = `<div style="color: var(--lavender-dark);">Awaiting target selection from telemetry...</div>`;
         document.getElementById('manualActionContainer').innerHTML = '';

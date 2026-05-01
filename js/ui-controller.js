@@ -93,7 +93,7 @@ const UIController = {
         if (isStagnant) {
             mode = 'PUSH';
             actionLabel = 'Surplus: Push Inventory';
-            // PUSH: Only show nodes that already carry this SKU to push to
+            // PUSH: You can push dead stock to ANY warehouse in the network
             optionsHtml = `
                 <label style="color: var(--lavender);">Transfer To:</label>
                 <select id="manualNodeSelect" class="form-select">
@@ -105,7 +105,7 @@ const UIController = {
         } else if (isStockout) {
             mode = 'PULL';
             actionLabel = 'Deficit: Pull Replenishment';
-            // PULL: Only show nodes that have surplus stock of this SKU
+            // PULL: You can only pull from the Central Warehouse or a node that physically has the stock
             optionsHtml = `
                 <label style="color: var(--lavender);">Transfer From:</label>
                 <select id="manualNodeSelect" class="form-select">
@@ -135,19 +135,21 @@ const UIController = {
     },
 
     generateValidNodes(sku, excludeNode, mode) {
-        // Filter strictly for nodes carrying this exact SKU
-        let validPeers = DataEngine.inventoryState.filter(item => item.sku === sku && item.node !== excludeNode);
+        // Get master list of all unique nodes in the entire network
+        const allNodes = [...new Set(DataEngine.inventoryState.map(item => item.node))].sort();
         
-        if (mode === 'PULL') {
-            // If pulling, peer must have stock available to give
-            validPeers = validPeers.filter(item => item.stock > 10);
+        if (mode === 'PUSH') {
+            // Can send anywhere except the origin node
+            return allNodes.filter(n => n !== excludeNode)
+                           .map(n => `<option value="${n}">${n}</option>`).join('');
+        } else {
+            // PULL Mode: Must locate nodes that actually possess surplus stock
+            let validPeers = DataEngine.inventoryState.filter(item => item.sku === sku && item.node !== excludeNode && item.stock > 10);
+            if (validPeers.length === 0) {
+                return `<option value="NONE" disabled>No peers with surplus stock</option>`;
+            }
+            return validPeers.map(n => `<option value="${n.node}">${n.node} (Avail: ${n.stock})</option>`).join('');
         }
-
-        if (validPeers.length === 0) {
-            return `<option value="NONE" disabled>No valid lateral peers found</option>`;
-        }
-
-        return validPeers.map(n => `<option value="${n.node}">${n.node} (Avail: ${n.stock})</option>`).join('');
     },
 
     async evaluateRoute() {
@@ -158,7 +160,7 @@ const UIController = {
         const mode = document.getElementById('optimizeBtn').dataset.mode;
         
         if (manualSelection === "NONE") {
-            alert("No valid routes available for this item.");
+            alert("No valid lateral routes available for this item.");
             return;
         }
 
@@ -179,7 +181,6 @@ const UIController = {
 
         const optimizationData = await DataEngine.fetchOptimization(payload);
         
-        // Render Math in the Modal
         let html = `
             <h2 style="color: var(--lavender); margin-bottom: 20px; text-align: center;">NETWORK ROUTE EVALUATION</h2>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
@@ -219,10 +220,10 @@ const UIController = {
 
         const mode = document.getElementById('optimizeBtn').dataset.mode;
         
-        // 1. Physically update the local arrays so the table changes
         let originNode = mode === 'PUSH' ? this.selectedAsset.node : targetNode;
         let destNode = mode === 'PUSH' ? targetNode : this.selectedAsset.node;
 
+        // Apply visual deduction to local memory state so the UI reflects the change
         if (originNode !== 'Central Warehouse') {
             let originItem = DataEngine.inventoryState.find(i => i.sku === this.selectedAsset.sku && i.node === originNode);
             if (originItem) originItem.stock -= quantity;
@@ -230,26 +231,60 @@ const UIController = {
 
         if (destNode !== 'Central Warehouse') {
             let destItem = DataEngine.inventoryState.find(i => i.sku === this.selectedAsset.sku && i.node === destNode);
-            if (destItem) destItem.stock += quantity;
+            if (destItem) {
+                destItem.stock += quantity;
+            } else {
+                // If we pushed to a node that didn't have this SKU before, create a new record in memory
+                DataEngine.inventoryState.push({
+                    sku: this.selectedAsset.sku, node: destNode, cost: this.selectedAsset.cost,
+                    stock: quantity, demand: 0, stagnant: 0, leadTime: this.selectedAsset.leadTime
+                });
+            }
         }
 
-        // 2. Hide Modal and Update UI
         document.getElementById('comparisonModal').style.display = 'none';
         this.renderTable();
         
-        // 3. Print success text in the console
-        const consoleDiv = document.getElementById('outputConsole');
-        consoleDiv.innerHTML = `<div style="color: var(--neon-green);">>> SUCCESS: ${quantity} units of ${this.selectedAsset.sku} transferred ${originNode} &rarr; ${destNode}. Database state updated.</div>` + consoleDiv.innerHTML;
+        // Trigger the new visual success notification
+        this.showToast(`SUCCESS: ${quantity} units of ${this.selectedAsset.sku} transferred ${originNode} \u2192 ${destNode}.`);
 
-        // 4. Fire the ledger event
-        if (window.LedgerEngine) {
+        // Safely record the transaction in the ledger
+        try {
             LedgerEngine.recordTransaction(this.selectedAsset, decisionType, targetNode, netImpact);
+        } catch (e) {
+            console.error("Ledger connection failed:", e);
         }
 
-        // 5. Clear selection
+        // Reset the Command Center
         this.selectedAsset = null;
         document.getElementById('selectedAssetDetails').innerHTML = `<div style="color: var(--lavender-dark);">Awaiting target selection from telemetry...</div>`;
         document.getElementById('manualActionContainer').innerHTML = '';
         document.getElementById('optimizeBtn').disabled = true;
+    },
+
+    // New function to handle sleek, temporary UI notifications
+    showToast(message) {
+        let toast = document.createElement('div');
+        toast.style.position = 'fixed';
+        toast.style.top = '30px';
+        toast.style.right = '40px';
+        toast.style.background = 'var(--neon-green)';
+        toast.style.color = '#000';
+        toast.style.padding = '15px 25px';
+        toast.style.borderRadius = '4px';
+        toast.style.fontFamily = "'JetBrains Mono', monospace";
+        toast.style.fontWeight = 'bold';
+        toast.style.boxShadow = '0 5px 20px rgba(0, 250, 154, 0.4)';
+        toast.style.zIndex = '9999';
+        toast.style.transition = 'opacity 0.4s ease-in-out';
+        toast.innerText = message;
+
+        document.body.appendChild(toast);
+
+        // Auto-fade out after 3.5 seconds
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => document.body.removeChild(toast), 400);
+        }, 3500);
     }
 };

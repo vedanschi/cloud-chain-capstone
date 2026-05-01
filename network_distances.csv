@@ -1,4 +1,4 @@
-Origin_Node,Destination_Node,Distance_Miles
+origin_node,destination_node,distance_miles
 Node-North,Node-South,245
 Node-South,Node-North,245
 Node-North,Node-East,516

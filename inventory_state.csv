@@ -1,4 +1,4 @@
-SKU_ID,Node_Location,Unit_Cost,Current_Stock,Daily_Demand,Days_Stagnant,Lead_Time_Days
+sku_id,node_location,unit_cost,current_stock,daily_demand,days_stagnant,lead_time_days
 ITEM-6940,Node-East,453.54,66,3,0,11
 ITEM-4890,Node-Central,757.45,42,6,0,12
 ITEM-2170,Node-South,530.33,63,2,0,14

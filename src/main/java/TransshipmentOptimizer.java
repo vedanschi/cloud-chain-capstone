@@ -173,6 +173,10 @@ public class TransshipmentOptimizer {
         } else if ("PULL".equalsIgnoreCase(mode)) {
             double cwPenalty = CENTRAL_WAREHOUSE_FREIGHT + unitCost; // Human baseline cost
 
+            // THE LOGIC FIX: Instantly inject Central Warehouse as the fallback guarantee. 
+            // It has $0.00 relative savings because it is the baseline we compare against.
+            result.viableRoutes.add(new RouteDecision("Central Warehouse", 0.0, 50, 0.0));
+
             for (InventoryRecord origin : inventoryState) {
                 if (origin.sku.equals(sku) && !origin.node.equals(lockedNode)) {
                     int surplus = origin.currentStock - ORIGIN_SAFETY_STOCK_BUFFER;
@@ -183,6 +187,7 @@ public class TransshipmentOptimizer {
                         double peerHoldingCostSaved = (unitCost * ANNUAL_HOLDING_COST_PCT) * (origin.daysStagnant / 365.0);
                         double lateralNetCost = lateralFreightCost - peerHoldingCostSaved;
 
+                        // Does this lateral move beat the Central Warehouse?
                         if (lateralNetCost < cwPenalty) {
                             double netSavings = cwPenalty - lateralNetCost;
                             int transferQuantity = Math.min(surplus, 50);
@@ -194,6 +199,7 @@ public class TransshipmentOptimizer {
         }
 
         if (!result.viableRoutes.isEmpty()) {
+            // Sort by highest savings first. If a lateral route saves money, it beats the Central Warehouse.
             result.viableRoutes.sort((r1, r2) -> Double.compare(r2.netSavings, r1.netSavings));
             result.winner = result.viableRoutes.get(0);
             result.success = true;
